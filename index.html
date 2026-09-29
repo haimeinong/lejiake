@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>车间生产工作台</title>
+<meta name="theme-color" content="#1f2a44">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="生产工作台">
+<meta name="format-detection" content="telephone=no">
+<style>
+/* SECTION: base-css */
+:root { --ink:#24314d; --gray:#6b7280; --line:#d5dae2; --bg:#eef1f5; --panel:#fff; --blue:#2e5395; --blue-d:#1f2a44; --green:#1a7f4e; --amber:#b45f06; --red:#b42318; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Microsoft YaHei',sans-serif; font-size:14px; }
+header.top { background:var(--blue-d); color:#fff; padding:0 16px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; position:sticky; top:0; z-index:20; box-shadow:0 2px 6px rgba(0,0,0,.25); }
+header.top .brand { font-weight:700; font-size:16px; padding:12px 12px 12px 0; letter-spacing:1px; }
+header.top .navbtn { color:#cdd6e4; text-decoration:none; padding:13px 16px; font-size:14px; border:none; background:none; cursor:pointer; border-bottom:3px solid transparent; }
+header.top .navbtn:hover { color:#fff; }
+header.top .navbtn.on { color:#fff; border-bottom-color:#4f8ff7; background:rgba(255,255,255,.06); }
+header.top .spacer { flex:1; }
+header.top button.ghost { border:1px solid #4a5878; background:transparent; color:#cdd6e4; border-radius:4px; padding:5px 12px; cursor:pointer; font-size:12px; }
+header.top button.ghost:hover { color:#fff; border-color:#8fa4c8; }
+main { max-width:1240px; margin:0 auto; padding:18px 14px 80px; }
+.view { display:none; } .view.on { display:block; }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:6px; margin-bottom:16px; box-shadow:0 1px 2px rgba(20,30,60,.05); }
+.card > h2 { margin:0; font-size:15px; background:#f3f5f9; padding:10px 14px; border-bottom:1px solid var(--line); border-radius:6px 6px 0 0; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+.pad { padding:14px; }
+.rowflex { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+.muted { color:var(--gray); font-size:12px; }
+/* SECTION: control-css */
+button { cursor:pointer; border:1px solid var(--line); background:#fff; border-radius:4px; padding:5px 12px; font-size:13px; color:var(--ink); }
+button:hover { background:#f0f3f8; }
+button.pri { background:var(--blue); border-color:var(--blue); color:#fff; }
+button.pri:hover { background:#27467d; }
+button.danger { color:var(--red); }
+input[type=text],input[type=number],input[type=date],input[type=search],textarea,select { font:inherit; border:1px solid var(--line); border-radius:4px; padding:6px 8px; background:#fff; color:var(--ink); }
+input:focus,select:focus,textarea:focus { outline:2px solid #b9cdf0; border-color:var(--blue); }
+textarea { width:100%; min-height:150px; line-height:1.8; }
+.form-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; align-items:end; }
+.fld label { display:block; font-size:12px; color:var(--gray); margin-bottom:3px; }
+.fld input,.fld select { width:100%; }
+/* SECTION: report-line */
+.rp-bar { display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; background:#f8fafd; border:1px solid var(--line); border-radius:6px; padding:8px 10px; }
+.rp-mode { display:inline-flex; align-items:center; gap:10px; flex:none; }
+.rp-mode b { font-size:12px; color:var(--gray); font-weight:600; }
+.rp-mode label { display:inline-flex; align-items:center; gap:4px; font-size:13px; margin:0; color:var(--ink); }
+.rp-mode input[type=radio] { width:auto; accent-color:var(--blue); }
+.rp-i { display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--gray); flex:none; }
+.rp-i input { width:72px; padding:4px 6px; font-size:13px; }
+.rp-i input[type=text] { width:100px; }
+.rp-i input[type=date] { width:128px; }
+.rp-i select { padding:4px 6px; font-size:13px; width:auto; max-width:120px; }
+.rp-i[hidden] { display:none; }
+.rp-gap { flex:1; min-width:0; }
+@media (max-width:768px) { .rp-i select{max-width:150px;} }
+/* SECTION: table-css */
+.tw { overflow-x:auto; }
+table.grid { border-collapse:collapse; width:100%; font-size:13px; }
+table.grid th { background:#f3f5f9; text-align:left; padding:8px 10px; border:1px solid var(--line); white-space:nowrap; font-weight:600; }
+table.grid td { padding:8px 10px; border:1px solid var(--line); vertical-align:middle; }
+table.grid tr:hover td { background:#f8fafd; }
+td.num,th.num { text-align:right; }
+.badge { display:inline-block; font-size:12px; padding:2px 10px; border-radius:10px; white-space:nowrap; }
+.b-idle { background:#eceff3; color:#5b6470; }
+.b-doing { background:#e2ecfb; color:var(--blue); }
+.b-done { background:#dff3e8; color:var(--green); }
+.b-late { background:#fde8e6; color:var(--red); }
+.bar { background:#e6eaf1; border-radius:6px; height:10px; overflow:hidden; min-width:90px; }
+.bar i { display:block; height:100%; background:var(--blue); border-radius:6px; transition:width .3s; }
+.bar i.g { background:var(--green); } .bar i.r { background:var(--red); }
+.pct { font-size:12px; font-weight:700; min-width:42px; display:inline-block; text-align:right; }
+/* SECTION: tabs-board-canvas */
+.tabbar { display:flex; gap:6px; flex-wrap:wrap; }
+.tabbar button { border-radius:16px; padding:6px 16px; }
+.tabbar button.on { background:var(--blue); border-color:var(--blue); color:#fff; }
+.kwrap { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:14px; }
+.kcard { border:1px solid var(--line); border-radius:6px; background:#fff; padding:12px 14px; display:flex; flex-direction:column; gap:8px; }
+.kcard h3 { margin:0; font-size:15px; display:flex; justify-content:space-between; gap:8px; align-items:center; flex-wrap:wrap; }
+.krow { display:flex; align-items:center; gap:8px; font-size:12px; }
+.krow .pn { width:88px; flex:none; color:var(--gray); }
+.krow .bar { flex:1; }
+.kmeta { display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; color:var(--gray); font-size:12px; }
+table.canvas { border-collapse:collapse; width:100%; }
+table.canvas td { border:1px solid var(--line); padding:8px 10px; vertical-align:top; }
+td.lab { background:#f3f5f9; width:96px; font-weight:700; text-align:center; }
+.rowtitle { background:#f3f5f9; font-weight:700; padding:9px 12px; border:1px solid var(--line); border-bottom:none; border-radius:6px 6px 0 0; }
+.rowtitle.dnh { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.stages { display:flex; gap:12px; flex-wrap:wrap; }
+.stage { flex:1 1 160px; min-width:150px; }
+.stage .sname { border:2px dashed #9aa8c0; text-align:center; padding:7px 6px; font-weight:600; margin-bottom:8px; background:#f8fafd; border-radius:4px; }
+.steps { display:flex; flex-wrap:wrap; gap:5px; }
+.step { border:1.5px solid #6a7a95; background:#fff; padding:5px 8px; font-size:12px; border-radius:3px; }
+.tools { display:flex; gap:12px; flex-wrap:wrap; }
+.tgroup { flex:1 1 160px; min-width:150px; border:1px dashed var(--line); padding:7px; display:flex; gap:5px; flex-wrap:wrap; align-content:flex-start; border-radius:4px; }
+.iface-tag { border:1.5px dashed #b7a04a; background:#fffbe8; padding:5px 8px; font-size:12px; text-align:center; border-radius:3px; }
+.iface-tag b { color:#8a6d1a; font-weight:600; }
+.tool { border:1.5px solid #6a7a95; background:#fff; padding:6px 9px; font-size:12px; border-radius:3px; }
+.flow { display:flex; align-items:stretch; gap:6px; overflow-x:auto; padding:6px 2px; }
+.fnode { background:#fff; border:1.5px solid #6a7a95; padding:8px 12px; min-width:110px; border-radius:4px; }
+.fnode b { display:block; font-size:13px; margin-bottom:4px; }
+.fnode span { display:block; font-size:11px; color:var(--gray); }
+.farr { align-self:center; color:#6a7a95; font-size:18px; }
+.dir-item { display:flex; justify-content:space-between; gap:10px; align-items:center; border-bottom:1px dashed var(--line); padding:10px 4px; flex-wrap:wrap; }
+.dir-item:last-child { border-bottom:none; }
+.dir-item .t { font-weight:600; }
+.dir-item .m { color:var(--gray); font-size:12px; }
+a.link { color:var(--blue); text-decoration:none; }
+.editrow { display:flex; gap:6px; flex-wrap:wrap; align-items:center; margin-top:6px; }
+.chips { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.chip { background:#e8edf5; color:var(--blue); font-size:12px; padding:4px 12px; border-radius:10px; }
+.toast { position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:var(--blue-d); color:#fff; padding:9px 20px; border-radius:20px; font-size:13px; opacity:0; transition:.3s; pointer-events:none; z-index:50; }
+.toast.show { opacity:.95; }
+.empty { text-align:center; color:var(--gray); padding:26px 10px; font-size:13px; }
+/* SECTION: feature-css */
+.ovl { position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:60; display:flex; align-items:center; justify-content:center; padding:14px; }
+.ovl .box { background:#fff; border-radius:8px; width:100%; max-width:960px; max-height:90vh; display:flex; flex-direction:column; box-shadow:0 12px 40px rgba(0,0,0,.3); }
+.ovl .box > h3 { margin:0; padding:12px 16px; border-bottom:1px solid var(--line); font-size:15px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+.ovl .obox { padding:12px 16px; overflow:auto; }
+.ovl .fbot { padding:10px 16px; border-top:1px solid var(--line); display:flex; gap:8px; justify-content:flex-end; align-items:center; flex-wrap:wrap; }
+input.mini { width:88px; padding:3px 6px; text-align:right; }
+input.unit { width:58px; padding:3px 6px; }
+.err { color:var(--red); font-size:12px; } .warn { color:var(--amber); font-size:12px; }
+.note { background:#f6f7fa; border:1px dashed var(--line); border-radius:6px; padding:8px 12px; font-size:12px; color:var(--gray); margin-bottom:12px; line-height:1.7; }
+.subblock { border:1px solid var(--line); border-radius:6px; padding:10px 12px; margin-bottom:14px; background:#fcfdff; }
+.subblock > h4 { margin:0 0 6px; font-size:13px; }
+.chkline { display:flex; align-items:center; gap:6px; min-height:34px; font-size:13px; }
+button.mini-btn { padding:3px 9px; font-size:12px; }
+tr.isdone td { background:#f4fbf7; }
+.impbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:10px; }
+button { touch-action:manipulation; }
+html { -webkit-text-size-adjust:100%; }
+body { -webkit-tap-highlight-color:rgba(31,42,68,.08); overscroll-behavior-y:none; }
+/* SECTION: pwa-shell */
+.savestate { font-size:11px; color:#9fb0cc; white-space:nowrap; }
+.mobnav { display:none; }
+.sw-update { position:fixed; right:14px; bottom:76px; z-index:55; background:var(--green); color:#fff; border:none; border-radius:20px; padding:9px 18px; font-size:13px; box-shadow:0 4px 14px rgba(0,0,0,.25); }
+header.top #btn-reset { white-space:nowrap; }
+/* SECTION: responsive-tablet */
+@media (max-width:768px) {
+  td.lab { width:64px; }
+  .stage { flex:1 1 100%; }
+  main { padding:12px 10px 70px; }
+  .kwrap { grid-template-columns:1fr; }
+  /* 看板卡片工序行：名称/数值一行，进度条独占一行 */
+  .krow { flex-wrap:wrap; }
+  .krow .pn { width:auto; flex:0 0 auto; }
+  .krow .bar { flex:1 1 100%; order:3; min-width:0; }
+  .krow .muted { margin-left:auto; text-align:right; min-width:0 !important; }
+  #board-kw { width:100%; }
+  .ovl .box { max-width:100%; }
+}
+/* SECTION: responsive-phone */
+@media (max-width:640px) {
+  body { font-size:14px; }
+  header.top { padding:6px 10px; gap:4px; flex-wrap:nowrap; overflow-x:auto; }
+  header.top .brand { font-size:15px; padding:8px 6px 8px 0; flex:none; }
+  header.top .navbtn { display:none; }
+  header.top .spacer { display:none; }
+  header.top .ghost { padding:6px 10px; font-size:12px; flex:none; }
+  header.top #btn-reset { display:none; }
+  .savestate { display:none; }
+  main { padding:10px 8px calc(76px + env(safe-area-inset-bottom)); }
+  .card { margin-bottom:12px; border-radius:8px; }
+  .card > h2 { padding:10px 12px; gap:8px; }
+  .pad { padding:12px 10px; }
+  /* 触控区域放大；输入框字号 16px 防止 iPhone 自动放大 */
+  button { min-height:38px; padding:7px 14px; font-size:14px; }
+  button.mini-btn { min-height:32px; padding:5px 10px; }
+  .tabbar button { padding:8px 16px; min-height:36px; flex:none; }
+  .tabbar { flex-wrap:nowrap; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:2px; flex:1 1 100%; }
+  [hidden] { display:none !important; }
+  input[type=text],input[type=number],input[type=date],input[type=search],textarea,select { font-size:16px; min-height:38px; }
+  input.mini { width:120px; min-height:34px; }
+  input.unit { width:90px; min-height:34px; }
+  .form-grid { grid-template-columns:1fr; gap:12px; }
+  /* 报工单行表单在手机上纵向铺开 */
+  .rp-bar { flex-direction:column; align-items:stretch; gap:10px; }
+  .rp-i { width:100%; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .rp-i input, .rp-i select { flex:1 1 auto; width:auto !important; min-width:0; max-width:none !important; }
+  .rp-mode { width:100%; justify-content:space-between; }
+  .rp-bar .pri { width:100%; padding:11px; font-size:15px; margin-top:2px; }
+  /* 表格卡片化（仅对带 data-label 的列显示标签） */
+  .tw { overflow:visible; }
+  table.grid { display:block; }
+  table.grid tr:first-child { display:none; }
+  table.grid tr { display:block; border:1px solid var(--line); border-radius:8px; margin:0 0 10px; padding:2px 10px; background:#fff; }
+  table.grid tr:hover td { background:transparent; }
+  tr.isdone { background:#f4fbf7; }
+  table.grid td { display:flex; justify-content:space-between; align-items:center; gap:14px; border:none; border-bottom:1px dashed #e3e7ee; padding:8px 0; text-align:right; white-space:normal !important; }
+  table.grid td::before { content:attr(data-label); color:var(--gray); font-size:12px; flex:none; text-align:left; }
+  table.grid td:last-child { border-bottom:none; }
+  table.grid td .muted { text-align:right; }
+  /* 工作画布表格纵向化 */
+  table.canvas, table.canvas tbody { display:block; }
+  table.canvas tr { display:block; }
+  table.canvas td { display:block; }
+  table.canvas td.lab { width:auto; text-align:left; }
+  .flow { font-size:12px; }
+  .fnode { min-width:96px; }
+  /* 弹窗全屏化 */
+  .ovl { padding:0; }
+  .ovl .box { max-width:100%; max-height:100%; height:100%; border-radius:0; }
+  .ovl .obox { padding:12px; }
+  .ovl .fbot { padding:10px 12px calc(10px + env(safe-area-inset-bottom)); position:sticky; bottom:0; background:#fff; }
+  .ovl .fbot button { flex:1 1 auto; min-height:42px; }
+  /* Toast 上移，避开底部导航 */
+  .toast { bottom:calc(84px + env(safe-area-inset-bottom)); max-width:90vw; text-align:center; }
+  .sw-update { bottom:calc(82px + env(safe-area-inset-bottom)); }
+  /* 底部导航 */
+  .mobnav { display:flex; position:fixed; left:0; right:0; bottom:0; z-index:40; background:#fff; border-top:1px solid var(--line); box-shadow:0 -2px 10px rgba(20,30,60,.08); padding-bottom:env(safe-area-inset-bottom); }
+  .mobnav button { flex:1 1 0; border:none; background:none; border-radius:0; border-top:3px solid transparent; padding:7px 0 7px; min-height:56px; font-size:12px; color:#5b6470; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; }
+  .mobnav button .mi { font-size:19px; line-height:1; color:#8a94a6; font-weight:700; }
+  .mobnav button.on { color:var(--blue); font-weight:700; border-top-color:var(--blue); background:#f6f9ff; }
+  .mobnav button.on .mi { color:var(--blue); }
+  .note { line-height:1.8; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <span class="brand">车间生产工作台</span>
+  <button class="navbtn on" data-nav="data">① 生产数据记录</button>
+  <button class="navbtn" data-nav="board">② 生产进度看板</button>
+  <button class="navbtn" data-nav="canvas">③ 工作画布</button>
+  <span class="spacer"></span>
+  <span class="savestate" id="save-state"></span>
+  <button class="ghost" id="btn-install">安装 App</button>
+  <button class="ghost" id="btn-store" title="数据保存状态、备份与恢复">数据状态</button>
+  <button class="ghost" id="btn-reset" title="恢复内置示例记录">重置示例数据</button>
+</header>
+<main>
+  <div id="view-data" class="view on"></div>
+  <div id="view-board" class="view"></div>
+  <div id="view-canvas" class="view"></div>
+</main>
+<nav class="mobnav" aria-label="主导航">
+  <button class="on" data-nav="data"><span class="mi">①</span><span>数据记录</span></button>
+  <button data-nav="board"><span class="mi">②</span><span>进度看板</span></button>
+  <button data-nav="canvas"><span class="mi">③</span><span>工作画布</span></button>
+</nav>
+<button class="sw-update" id="sw-update" hidden>↻ 发现新版本，点击刷新</button>
+<div id="toast" class="toast"></div>
+<div id="modal-root"></div>
+<input type="file" id="import-file" accept=".json,application/json" style="display:none">
+<input type="file" id="import-xlsx" accept=".csv,.txt" style="display:none">
+<input type="file" id="restore-file" accept=".json,application/json" style="display:none">
+<script>
+/* SECTION: state */
+var LS = 'cpw_state_v1';
+var LS_PREV = 'cpw_state_prev';          /* 上一次保存前的完整数据 */
+var SNAP_PREFIX = 'cpw_snap_';            /* 每日快照 cpw_snap_YYYYMMDD，保留 7 天 */
+var LS_META = 'cpw_backup_meta';
+var APP_VERSION = 'v4（手机/平板 PWA 版）';
+var recoveredFrom = '';
+function uid(){ return 'r' + Date.now().toString(36) + Math.floor(Math.random()*1e4); }
+function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2); }
+function procMetaOf(list){ var o={}; list.forEach(function(x){ o[x[0]]={ unit:x[1], qty:x[2] }; }); return o; }
+function defaults(){
+  var p0='MO-2026-0908', p1='MO-2026-0912', p2='MO-2026-0913', p3='MO-2026-0914', p4='MO-2026-0915';
+  return {
+    plans: [
+      { id:p1, orderNo:'MO-2026-0912', matCode:'BOM-HL-001', product:'麻辣火锅底料', spec:'150g×40袋/箱', planQty:800, unit:'箱', processes:['原料验收','炒制','灌装封口','冷却包装','检验入库'],
+        procMeta: procMetaOf([['原料验收','kg',null],['炒制','kg',500],['灌装封口','箱',800],['冷却包装','箱',800],['检验入库','箱',800]]),
+        start:'2026-09-15', due:'2026-09-25' },
+      { id:p2, orderNo:'MO-2026-0913', matCode:'BOM-WX-002', product:'五香粉', spec:'500g×20罐/箱', planQty:600, unit:'箱', processes:['原料验收','粉碎筛分','配料混合','包装','检验入库'],
+        procMeta: procMetaOf([['原料验收','kg',null],['粉碎筛分','kg',200],['配料混合','kg',200],['包装','箱',600],['检验入库','箱',600]]),
+        start:'2026-09-16', due:'2026-09-26' },
+      { id:p3, orderNo:'MO-2026-0914', matCode:'BOM-BT-003', product:'白砂糖（分装）', spec:'400g×25袋/箱', planQty:1200, unit:'箱', processes:['原料验收','筛分检测','称量包装','封口贴标','检验入库'],
+        procMeta: procMetaOf([['原料验收','kg',null],['筛分检测','kg',500],['称量包装','箱',1200],['封口贴标','箱',1200],['检验入库','箱',1200]]),
+        start:'2026-09-05', due:'2026-09-18' },
+      { id:p4, orderNo:'MO-2026-0915', matCode:'BOM-TQ-004', product:'糖醋汁调味料', spec:'500ml×12瓶/箱', planQty:500, unit:'箱', processes:['原料验收','配料称量','调配杀菌','过滤灌装','喷码装箱','检验入库'],
+        procMeta: procMetaOf([['原料验收','kg',null],['配料称量','kg',420],['调配杀菌','kg',420],['过滤灌装','箱',500],['喷码装箱','箱',500],['检验入库','箱',500]]),
+        start:'2026-09-21', due:'2026-09-30' },
+      { id:p0, orderNo:'MO-2026-0908', matCode:'BOM-NR-005', product:'香辣牛肉酱', spec:'200g×24瓶/箱', planQty:300, unit:'箱', processes:['原料验收','炒制','灌装','检验入库'],
+        procMeta: procMetaOf([['原料验收','kg',null],['炒制','kg',180],['灌装','箱',300],['检验入库','箱',300]]),
+        start:'2026-08-20', due:'2026-09-05', archived:true, archivedAt:'2026-09-06', archivedNote:'订单已完工入库，归档留存备查' }
+    ],
+    pickings: [
+      { id:uid(), planId:p1, process:'原料验收', matCode:'MAT-NY-001', material:'牛油、辣椒、花椒、香辛料', spec:'批检合格', qtyNeed:520, qtyGot:520, picker:'仓管-刘敏', date:'2026-09-15' },
+      { id:uid(), planId:p1, process:'炒制', matCode:'MAT-XXF-002', material:'复合香辛料粉', spec:'按配方B-3', qtyNeed:60, qtyGot:60, picker:'配料工-陈刚', date:'2026-09-16' },
+      { id:uid(), planId:p1, process:'灌装封口', matCode:'MAT-BZ-003', material:'内包装袋+纸箱', spec:'印刷版A2', qtyNeed:800, qtyGot:790, picker:'仓管-刘敏', date:'2026-09-17' },
+      { id:uid(), planId:p2, process:'原料验收', matCode:'MAT-XXX-004', material:'八角、桂皮、孜然、小茴香', spec:'批检合格', qtyNeed:210, qtyGot:200, picker:'仓管-王磊', date:'2026-09-16' },
+      { id:uid(), planId:p2, process:'包装', matCode:'MAT-BG-005', material:'玻璃罐500g+标签', spec:'标贴V4', qtyNeed:600, qtyGot:600, picker:'仓管-王磊', date:'2026-09-18' },
+      { id:uid(), planId:p3, process:'原料验收', matCode:'MAT-BT-006', material:'食用白砂糖（大袋）', spec:'供货方SC核验', qtyNeed:500, qtyGot:500, picker:'仓管-刘敏', date:'2026-09-06' },
+      { id:uid(), planId:p0, process:'原料验收', matCode:'MAT-NR-007', material:'牛肉、豆瓣酱、香辛料', spec:'批检合格', qtyNeed:200, qtyGot:200, picker:'仓管-刘敏', date:'2026-08-21' }
+    ],
+    reports: [
+      { id:uid(), planId:p1, process:'原料验收', done:true, qty:null, okQty:null, ngQty:null, reporter:'验收员-周芳', shift:'早班', date:'2026-09-15' },
+      { id:uid(), planId:p1, process:'炒制', done:false, qty:380, okQty:370, ngQty:10, reporter:'炒制工-李强', shift:'中班', date:'2026-09-17' },
+      { id:uid(), planId:p1, process:'炒制', done:false, qty:100, okQty:98, ngQty:2, reporter:'炒制工-李强', shift:'早班', date:'2026-09-19' },
+      { id:uid(), planId:p1, process:'灌装封口', done:false, qty:430, okQty:424, ngQty:6, reporter:'灌装工-赵磊', shift:'中班', date:'2026-09-19' },
+      { id:uid(), planId:p2, process:'原料验收', done:true, qty:null, okQty:null, ngQty:null, reporter:'验收员-周芳', shift:'早班', date:'2026-09-16' },
+      { id:uid(), planId:p2, process:'粉碎筛分', done:false, qty:190, okQty:182, ngQty:8, reporter:'粉碎工-孙勇', shift:'早班', date:'2026-09-18' },
+      { id:uid(), planId:p2, process:'配料混合', done:false, qty:150, okQty:150, ngQty:0, reporter:'配料工-陈刚', shift:'中班', date:'2026-09-19' },
+      { id:uid(), planId:p3, process:'原料验收', done:false, qty:500, okQty:500, ngQty:0, reporter:'验收员-周芳', shift:'早班', date:'2026-09-06' },
+      { id:uid(), planId:p3, process:'筛分检测', done:false, qty:480, okQty:465, ngQty:15, reporter:'筛分工-吴娟', shift:'早班', date:'2026-09-09' },
+      { id:uid(), planId:p0, process:'原料验收', done:true, qty:null, okQty:null, ngQty:null, reporter:'验收员-周芳', shift:'早班', date:'2026-08-21' },
+      { id:uid(), planId:p0, process:'炒制', done:false, qty:180, okQty:176, ngQty:4, reporter:'炒制工-李强', shift:'中班', date:'2026-08-24' },
+      { id:uid(), planId:p0, process:'灌装', done:true, qty:null, okQty:null, ngQty:null, reporter:'灌装工-赵磊', shift:'早班', date:'2026-08-28' },
+      { id:uid(), planId:p0, process:'检验入库', done:true, qty:null, okQty:null, ngQty:null, reporter:'品控-何静', shift:'早班', date:'2026-09-02' }
+    ],
+    canvases: [
+      { id:'line-semi-solid', title:'半固态炒制线（火锅底料）', user:'餐饮渠道/经销商/电商', operator:'炒制/灌装班组', iface:'品控员/仓管员',
+        stageIfaces:['仓管员/品控员','','品控员','品控员','','品控员','仓管员'],
+        stages:[ {name:'原料验收',steps:['油脂/酱类检验','香辛料检验']}, {name:'前处理',steps:['香辛料粉碎','辣椒煮制']}, {name:'炒制/调配',steps:['加热炒制（CCP）','焖制调味']}, {name:'过滤检测',steps:['金属探测','过滤']}, {name:'灌装封口',steps:['热灌','封口']}, {name:'冷却包装',steps:['冷却定型','装箱']}, {name:'检验入库',steps:['酸价/过氧化值','合格入库']} ],
+        supports:[ {items:['验收台']}, {items:['粉碎机','蒸煮锅']}, {items:['炒锅','搅拌锅']}, {items:['金属探测机','过滤机']}, {items:['酱体定量包装机','旋盖机']}, {items:['冷却塔','装箱机']}, {items:['检验台','货架']} ],
+        notes:'关键控制点：炒制温度/时间、灌装封口密封性。\n炒制区排油烟并与洁净灌装区物理隔离。' },
+      { id:'line-mill-compound', title:'粉碎与固态复合线（五香粉等）', user:'经销商/商超/餐饮客户', operator:'粉碎/配制班组', iface:'品控员/仓管员',
+        stageIfaces:['仓管员/品控员','','品控员','','品控员','品控员','仓管员'],
+        stages:[ {name:'原料验收',steps:['检验','入缓冲']}, {name:'清理干燥',steps:['除杂','干燥']}, {name:'粉碎筛分',steps:['粉碎/研磨','筛分','粗料回磨']}, {name:'配料混合',steps:['按方称量','混合搅拌','均匀度检查']}, {name:'金属探测',steps:['在线金探','异物剔除']}, {name:'灌装包装',steps:['袋/瓶/罐灌装','封口贴标','装箱']}, {name:'检验入库',steps:['成品检验','合格入库']} ],
+        supports:[ {items:['验收台']}, {items:['清理机','烘干箱']}, {items:['粉碎机','振动筛','除尘器']}, {items:['配料秤','混合机']}, {items:['金属探测机']}, {items:['粉粒充填包装机','封箱机']}, {items:['检验台','货架']} ],
+        notes:'关键控制点：粉碎粒度、配料称量、金属探测。\n粉碎间独立隔间 + 除尘。' }
+    ],
+    templates: [], lastCanvas:'line-semi-solid',
+    dataTab:'plan'
+  };
+}
+function parseState(raw){
+  if(!raw) return null;
+  try { var o=JSON.parse(raw); if(o && Array.isArray(o.plans) && Array.isArray(o.canvases)) return o; } catch(e){}
+  return null;
+}
+function loadState(){
+  var main = parseState(localStorage.getItem(LS));
+  if(main) return { s:main, from:'' };
+  /* 主数据损坏/缺失：依次从每日快照（新→旧）、上一次保存前备份恢复 */
+  var keys = [];
+  try { keys = Object.keys(localStorage); } catch(e){}
+  var snaps = keys.filter(function(k){ return k.indexOf(SNAP_PREFIX)===0; }).sort().reverse();
+  for(var i=0;i<snaps.length;i++){ var t=parseState(localStorage.getItem(snaps[i])); if(t) return { s:t, from:snaps[i] }; }
+  var prev = parseState(localStorage.getItem(LS_PREV));
+  if(prev) return { s:prev, from:LS_PREV };
+  return { s:defaults(), from:'' };
+}
+var __loaded = loadState();
+var S = __loaded.s;
+recoveredFrom = __loaded.from;
+if (typeof S.dataTab !== 'string') S.dataTab = 'plan';
+/* SECTION: migrate */
+function migrate(){
+  if(!Array.isArray(S.pickings)) S.pickings=[];
+  if(!Array.isArray(S.reports)) S.reports=[];
+  if(!Array.isArray(S.templates)) S.templates=[];
+  S.plans.forEach(function(p){
+    if(!Array.isArray(p.processes)) p.processes=[];
+    if(!p.procMeta || typeof p.procMeta!=='object') p.procMeta={};
+    p.processes.forEach(function(pr,idx){
+      var m=p.procMeta[pr] || (p.procMeta[pr]={});
+      if(typeof m.unit!=='string') m.unit = idx===0 ? 'kg' : (p.unit||'件');
+      if(m.qty!==null && m.qty!==undefined && m.qty!=='' && !(typeof m.qty==='number')) m.qty = +m.qty || null;
+      if(m.qty===undefined) m.qty=null;
+    });
+    Object.keys(p.procMeta).forEach(function(k){ if(p.processes.indexOf(k)<0) delete p.procMeta[k]; });
+    if(!p.archived) p.archived=false;
+  });
+  S.reports.forEach(function(r){
+    if(r.done===undefined) r.done=false;
+    r.done = !!r.done;
+    if(!r.archived) r.archived=false;
+  });
+  S.pickings.forEach(function(k){ if(!k.archived) k.archived=false; });
+  cvMigrateAll();
+}
+function pruneSnaps(){
+  try {
+    var keys = Object.keys(localStorage).filter(function(k){ return k.indexOf(SNAP_PREFIX)===0; }).sort();
+    while(keys.length > 7){ localStorage.removeItem(keys.shift()); }
+  } catch(e){}
+}
+function save(){
+  try {
+    var json = JSON.stringify(S);
+    var meta = {};
+    try { meta = JSON.parse(localStorage.getItem(LS_META)) || {}; } catch(e){}
+    /* 每天第一次保存时，把前一天/上次的完整数据留一份快照，最多 7 份 */
+    if(meta.lastSnapDate !== dateStr()){
+      var old = null;
+      try { old = localStorage.getItem(LS); } catch(e){}
+      if(old){
+        try { localStorage.setItem(LS_PREV, old); } catch(e){}
+        try { localStorage.setItem(SNAP_PREFIX + dateStr(), old); } catch(e){}
+        pruneSnaps();
+      }
+      meta.lastSnapDate = dateStr();
+      try { localStorage.setItem(LS_META, JSON.stringify(meta)); } catch(e){}
+    }
+    localStorage.setItem(LS, json);
+    updateSaveState();
+  } catch(e){
+    toast('保存失败：本机存储空间可能已满，请尽快用「数据状态 → 导出备份文件」另存');
+  }
+}
+function nowTime(){ var d=new Date(); return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2)+':'+('0'+d.getSeconds()).slice(-2); }
+function updateSaveState(){ var el=document.getElementById('save-state'); if(el) el.textContent='已自动保存 '+nowTime(); }
+function listSnaps(){
+  try {
+    return Object.keys(localStorage).filter(function(k){ return k.indexOf(SNAP_PREFIX)===0; }).sort().reverse()
+      .map(function(k){ return { key:k, date:k.slice(SNAP_PREFIX.length), valid: !!parseState(localStorage.getItem(k)) }; })
+      .filter(function(x){ return x.valid; });
+  } catch(e){ return []; }
+}
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(m){ var t=document.getElementById('toast'); t.textContent=m; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); },1600); }
+function fmtN(n){ return (n===null||n===undefined||n===''||isNaN(+n)) ? '—' : (Math.round(n*10)/10).toLocaleString('zh-CN'); }
+function dateStr(){ var d=new Date(); return d.getFullYear()+('0'+(d.getMonth()+1)).slice(-2)+('0'+d.getDate()).slice(-2); }
+function planById(id){ for(var i=0;i<S.plans.length;i++) if(S.plans[i].id===id) return S.plans[i]; return null; }
+function planLabel(p){ return (p.orderNo||'')+' · '+(p.matCode||'—')+' · '+(p.product||''); }
+function downloadBlob(blob,name){ var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500); }
+/* SECTION: active-filters */
+function activePlans(){ return S.plans.filter(function(p){ return !p.archived; }); }
+function actReports(planId){ return S.reports.filter(function(r){ return !r.archived && (planId? r.planId===planId : true); }); }
+function actPickings(planId){ return S.pickings.filter(function(k){ return !k.archived && (planId? k.planId===planId : true); }); }
+function procUnit(p,pr){ var m=p.procMeta&&p.procMeta[pr]; return (m&&m.unit) || p.unit || ''; }
+function pickSum(p,field){ var s=0,n=0; actPickings(p.id).forEach(function(k){ s+=+k[field]||0; n++; }); return {sum:s,count:n}; }
+function pickSumByProc(p,pr,field){ var s=0,n=0; actPickings(p.id).forEach(function(k){ if(k.process===pr){ s+=+k[field]||0; n++; } }); return {sum:s,count:n}; }
+/* 计划数优先级：工序计划数（可编辑） > 首道工序取本工序领料应领合计 > 订单成品计划数 */
+function procPlanQty(p,pr,idx){
+  var m=p.procMeta&&p.procMeta[pr];
+  if(m && typeof m.qty==='number' && !isNaN(m.qty)) return {qty:m.qty, src:'工序设定'};
+  if(idx===0){ var nk=pickSumByProc(p,pr,'qtyNeed'); if(nk.count) return {qty:nk.sum, src:'取本工序领料应领合计'}; }
+  return {qty:+p.planQty||0, src:'取订单成品计划数'};
+}
+function procIdx(p,pr){ var i=(p.processes||[]).indexOf(pr); return i<0?0:i; }
+
+/* SECTION: stats */
+function planStats(p){
+  var procs = (p.processes||[]).filter(function(x){return x;});
+  if(!procs.length) procs = ['（未配置工序）'];
+  var anyReport = false, rows = [], sumRate = 0, allDone = true;
+  procs.forEach(function(pr, idx){
+    var ok=0, rep=0, ng=0, done=false, cnt=0;
+    actReports(p.id).forEach(function(r){
+      if(r.process!==pr) return;
+      anyReport=true; cnt++;
+      if(r.done){ done=true; }
+      else { rep+=+r.qty||0; ok+=+r.okQty||0; ng+=+r.ngQty||0; }
+    });
+    var planInfo = procPlanQty(p,pr,idx);
+    var planQ = planInfo.qty;
+    var isFirst = idx===0;
+    var pkProc = pickSumByProc(p,pr,'qtyGot');
+    var pickGot = pkProc.sum;
+    var unit = procUnit(p,pr);
+    var rate, dispRep=rep, dispOk=ok;
+    if(done){
+      allDone = allDone && true;
+      rate = 100;
+      /* 已完成工序：报工/合格数按计划数计，无需再对数量 */
+      dispRep = planQ; dispOk = planQ;
+    } else {
+      allDone = false;
+      if(isFirst && cnt===0 && pickGot>0){ /* 首道工序尚无报工但有领料：以实领数作为在制数展示 */
+        dispRep = pickGot; dispOk = pickGot;
+      }
+      rate = planQ>0 ? Math.min(100, dispOk/planQ*100) : 0;
+    }
+    if(!anyReport) allDone=false;
+    sumRate += rate;
+    rows.push({ process:pr, idx:idx, unit:unit, plan:planQ, planSrc:planInfo.src, rep:dispRep, ok:dispOk, ng:ng, rawRep:rep, rawOk:ok, pickGot:pickGot, rate:rate, done:done, cnt:cnt, isFirst:isFirst });
+  });
+  var overall = rows.length ? Math.round(sumRate/rows.length) : 0;
+  var status;
+  if (allDone && anyReport && overall>=100) status='已完成';
+  else if (overall>=100 && anyReport) status='已完成';
+  else if (todayStr() > p.due) status='逾期';
+  else if (anyReport) status='进行中';
+  else status='未开工';
+  return { rows:rows, overall:overall, status:status };
+}
+function statusBadge(st){ var cls = st==='已完成'?'b-done': st==='逾期'?'b-late': st==='进行中'?'b-doing':'b-idle'; return '<span class="badge '+cls+'">'+st+'</span>'; }
+function barHtml(rate){ var cls = rate>=100?'g': (todayRateBad(rate)?'r':''); return '<span class="bar"><i class="'+cls+'" style="width:'+Math.min(100,rate)+'%"></i></span><span class="pct">'+Math.round(rate)+'%</span>'; }
+function todayRateBad(rate){ return rate < 60; }
+
+/* SECTION: modal */
+function openModal(title, bodyHtml, footHtml){
+  closeModal();
+  var root=document.getElementById('modal-root');
+  root.innerHTML='<div class="ovl" id="ovl-back"><div class="box"><h3><span>'+title+'</span><button data-m="close">关闭</button></h3>'
+    +'<div class="obox">'+bodyHtml+'</div>'+(footHtml?'<div class="fbot">'+footHtml+'</div>':'')+'</div></div>';
+  var bk=document.getElementById('ovl-back');
+  if(bk) bk.addEventListener('click',function(ev){ if(ev.target===bk) closeModal(); });
+}
+function closeModal(){ var r=document.getElementById('modal-root'); if(r) r.innerHTML=''; }
+
+/* SECTION: records-view */
+var editPlanId = null;
+var editDoneIds = {};
+function renderData(){
+  var tab = S.dataTab;
+  var tools = '';
+  if(tab==='plan'||tab==='pick'||tab==='report'){
+    tools = '<button data-m="imp-open" data-kind="'+tab+'">Excel 导入</button><button data-m="tpl" data-kind="'+tab+'">下载模板</button>';
+  } else if(tab==='hist'){
+    tools = '<button data-m="export-all">导出全部数据</button>';
+  }
+  var head = '<div class="card"><h2><span>生产数据记录</span><span class="tabbar">'
+    + dataTabBtn('plan','排产计划') + dataTabBtn('pick','生产领料') + dataTabBtn('report','工序报工') + dataTabBtn('done','订单完成情况') + dataTabBtn('hist','历史记录')
+    + '</span><span class="chips">'+tools+'</span></h2><div class="pad">';
+  var body = tab==='plan'?planBlock(): tab==='pick'?pickBlock(): tab==='report'?reportBlock(): tab==='done'?doneBlock(): histBlock();
+  document.getElementById('view-data').innerHTML = head + body + '</div></div>';
+  if(tab==='done'){
+    var dkw=document.getElementById('done-kw');
+    if(dkw) dkw.oninput=function(){ doneQuery=this.value; var pos=this.selectionStart; renderData(); var nk=document.getElementById('done-kw'); if(nk){ nk.focus(); try{ nk.setSelectionRange(pos,pos); }catch(e){} } };
+  }
+}
+function dataTabBtn(k,label){
+  var extra = k==='hist' ? '（'+(S.plans.filter(function(p){return p.archived;}).length+S.pickings.filter(function(x){return x.archived;}).length+S.reports.filter(function(x){return x.archived;}).length)+'）' : '';
+  return '<button data-tab="'+k+'" class="'+(S.dataTab===k?'on':'')+'">'+label+extra+'</button>';
+}
+function fld(label,id,type,val,req){ return '<div class="fld"><label>'+label+(req?' *':'')+'</label><input type="'+type+'" id="'+id+'" value="'+esc(val)+'"'+(req?' required':'')+'></div>'; }
+function planBlock(){
+  var editing = editPlanId ? planById(editPlanId) : null;
+  var f = editing || { orderNo:'', matCode:'', product:'', spec:'', planQty:'', unit:'箱', processes:'', start:todayStr(), due:'' };
+  var metaTxt = editing ? (editing.processes||[]).map(function(pr){ var m=editing.procMeta&&editing.procMeta[pr]; return (m&&typeof m.qty==='number')?m.qty:''; }).join('、') : '';
+  var form = '<div class="form-grid">'
+    + fld('订单号','f-po','text',f.orderNo,true) + fld('物料编码','f-mc','text',f.matCode) + fld('产品名称','f-pd','text',f.product,true) + fld('规格','f-ps','text',f.spec)
+    + fld('成品计划数','f-pq','number',f.planQty,true) + fld('成品单位','f-pun','text',f.unit||'箱')
+    + fld('计划开工','f-pt','date',f.start,true) + fld('计划完工','f-pu','date',f.due,true)
+    + '<div class="fld" style="grid-column:1/-1;"><label>工序清单（顿号或逗号分隔）</label><input type="text" id="f-prc" value="'+esc(Array.isArray(f.processes)?f.processes.join('、'):f.processes)+'" placeholder="如：原料验收、炒制、灌装封口、检验入库"></div>'
+    + '<div class="fld" style="grid-column:1/-1;"><label>各工序计划数与单位（与工序清单一一对应，用顿号分隔；留空表示按默认规则取值）　格式：数量/单位</label><input type="text" id="f-pqq" value="'+esc(metaTxt)+'" placeholder="如：/kg、500/kg、800/箱、800/箱"></div>'
+    + '<div class="fld"><label>&nbsp;</label><div class="rowflex"><button class="pri" id="btn-plan-save" data-primary-action>'+(editing?'保存修改':'新增排产')+'</button>'+(editing?'<button id="btn-plan-cancel">取消编辑</button>':'')+'</div></div></div>';
+  var list = activePlans();
+  var rows = list.map(function(p){
+    var st = planStats(p);
+    return '<tr><td data-label="订单号"><b>'+esc(p.orderNo)+'</b></td><td data-label="物料编码">'+esc(p.matCode||'—')+'</td><td data-label="产品/规格">'+esc(p.product)+'<div class="muted">'+esc(p.spec)+'</div></td><td class="num" data-label="成品计划数">'+fmtN(p.planQty)+' '+esc(p.unit||'')+'</td><td data-label="计划周期">'+esc(p.start)+' ~ '+esc(p.due)+'</td><td data-label="工序路线">'+(p.processes||[]).map(esc).join(' → ')+'</td><td data-label="状态">'+statusBadge(st.status)+'</td><td data-label="操作" style="white-space:nowrap;"><button data-act="edit-plan" data-id="'+p.id+'">编辑</button> <button class="danger" data-act="del-plan" data-id="'+p.id+'">删除</button></td></tr>';
+  }).join('');
+  var table = list.length ? '<div class="tw"><table class="grid"><tr><th>订单号</th><th>物料编码</th><th>产品/规格</th><th class="num">成品计划数</th><th>计划周期</th><th>工序路线</th><th>状态（自动）</th><th>操作</th></tr>'+rows+'</table></div>' : '<div class="empty">暂无在制排产计划。可在上方表单新增，或用「Excel 导入」批量录入；已归档订单请到「历史记录」查看。</div>';
+  return '<div class="note">'+(editing?'正在编辑排产单【'+esc(editing.orderNo)+'】。':'新增一条生产排产计划。每个工序可有<b>自己的计量单位与计划数</b>（如原料验收按 kg、包装按箱），首道工序留空时会自动取该订单<b>领料应领数合计</b>作为计划数。归档后的订单不在本页与看板展示，可在「历史记录」恢复。')+'</div>'+form+'<hr style="border:none;border-top:1px dashed var(--line);margin:16px 0">'+table;
+}
+function pickBlock(){
+  var list = activePlans();
+  if(!list.length) return '<div class="empty">暂无在制订单，请先在「排产计划」中录入或从「历史记录」恢复订单，再登记领料。</div>';
+  var opts = list.map(function(p){ return '<option value="'+p.id+'">'+esc(planLabel(p))+'</option>'; }).join('');
+  var form = '<div class="form-grid">'
+    + '<div class="fld"><label>生产订单 *</label><select id="f-kp">'+opts+'</select></div>'
+    + '<div class="fld"><label>工序</label><select id="f-kpr"></select></div>'
+    + fld('物料编号','f-kb','text') + fld('物料名称','f-km','text','',true) + fld('规格/批号','f-ks','text')
+    + fld('应领数量','f-kn','number','',true) + fld('实领数量','f-kg','number','',true)
+    + fld('领料人','f-kw','text','',true) + fld('领料日期','f-kd','date',todayStr(),true)
+    + '<div class="fld"><label>&nbsp;</label><button class="pri" id="btn-pick-add" data-primary-action>登记领料</button></div></div>';
+  var recs = actPickings();
+  var rows = recs.slice().reverse().map(function(k){
+    var p = planById(k.planId);
+    return '<tr><td data-label="生产订单">'+esc(p?planLabel(p):'（订单已删除）')+'</td><td data-label="工序">'+esc(k.process||'-')+'</td><td data-label="物料编号">'+esc(k.matCode||'-')+'</td><td data-label="物料/规格">'+esc(k.material)+'<div class="muted">'+esc(k.spec||'')+'</div></td><td class="num" data-label="应领">'+fmtN(k.qtyNeed)+'</td><td class="num" data-label="实领">'+fmtN(k.qtyGot)+'</td><td data-label="领料人">'+esc(k.picker)+'</td><td data-label="日期">'+esc(k.date)+'</td><td data-label="操作" style="white-space:nowrap;"><button class="danger" data-act="del-pick" data-id="'+k.id+'">删除</button></td></tr>';
+  }).join('');
+  var table = recs.length ? '<div class="tw" style="margin-top:14px;"><table class="grid"><tr><th>生产订单</th><th>工序</th><th>物料编号</th><th>物料/规格</th><th class="num">应领</th><th class="num">实领</th><th>领料人</th><th>日期</th><th>操作</th></tr>'+rows+'</table></div>' : '<div class="empty" style="margin-top:14px;">暂无在制领料记录。</div>';
+  return '<div class="note">首道工序（一般为原料验收）通常一次性领齐该订单全部物料，其<b>应领数合计</b>将作为该工序计划数、<b>实领数合计</b>作为该工序的领料/在制数，用于「订单完成情况」自动计算。</div>'+form+table;
+}
+function reportBlock(){
+  var list = activePlans();
+  if(!list.length) return '<div class="empty">暂无在制订单，请先在「排产计划」中录入或从「历史记录」恢复订单，再进行报工。</div>';
+  var opts = list.map(function(p){ return '<option value="'+p.id+'">'+esc(planLabel(p))+'</option>'; }).join('');
+  var form = '<div class="rp-bar">'
+    + '<span class="rp-i">生产订单 *<select id="f-rp" style="width:172px;">'+opts+'</select></span>'
+    + '<span class="rp-i">工序<select id="f-rpr"></select></span>'
+    + '<span class="rp-mode"><b>报工方式</b>'
+      + '<label><input type="radio" name="rmode" value="num" id="rmode-num" checked> 填数量</label>'
+      + '<label><input type="radio" name="rmode" value="done" id="rmode-done"> 直接完成</label></span>'
+    + '<span class="rp-i" id="fld-rq">报工数量 *<input type="number" id="f-rq"></span>'
+    + '<span class="rp-i" id="fld-ro">合格数 *<input type="number" id="f-ro"></span>'
+    + '<span class="rp-i" id="fld-rn">不合格数<input type="number" id="f-rn" value="0"></span>'
+    + '<span class="rp-i">报工人 *<input type="text" id="f-rw"></span>'
+    + '<span class="rp-i">班次<select id="f-rs"><option>早班</option><option>中班</option><option>晚班</option></select></span>'
+    + '<span class="rp-i">报工日期 *<input type="date" id="f-rd" value="'+esc(todayStr())+'"></span>'
+    + '<span class="rp-gap"></span>'
+    + '<button class="pri" id="btn-report-add" data-primary-action>提交报工</button>'
+    + '</div>'
+    + '<div class="muted" id="rmode-tip" style="margin-top:6px;"></div>';
+  var recs = actReports();
+  var rows = recs.slice().reverse().map(function(r){
+    var p = planById(r.planId);
+    var u = p?procUnit(p,r.process):'';
+    return '<tr'+(r.done?' class="isdone"':'')+'><td data-label="生产订单">'+esc(p?planLabel(p):'（订单已删除）')+'</td><td data-label="工序">'+esc(r.process)+'</td>'
+      + '<td class="num" data-label="报工">'+(r.done?'<span class="badge b-done">✔ 完成</span>':fmtN(r.qty)+' '+esc(u))+'</td>'
+      + '<td class="num" data-label="合格" style="color:var(--green);font-weight:600;">'+(r.done?'—':fmtN(r.okQty))+'</td>'
+      + '<td class="num" data-label="不合格" style="color:'+(+r.ngQty>0?'var(--red)':'inherit')+';">'+(r.done?'—':fmtN(r.ngQty))+'</td>'
+      + '<td data-label="报工人">'+esc(r.reporter)+'</td><td data-label="班次">'+esc(r.shift)+'</td><td data-label="日期">'+esc(r.date)+'</td>'
+      + '<td data-label="操作" style="white-space:nowrap;"><button class="danger" data-act="del-report" data-id="'+r.id+'">删除</button></td></tr>';
+  }).join('');
+  var table = recs.length ? '<div class="tw" style="margin-top:14px;"><table class="grid"><tr><th>生产订单</th><th>工序</th><th class="num">报工</th><th class="num">合格</th><th class="num">不合格</th><th>报工人</th><th>班次</th><th>日期</th><th>操作</th></tr>'+rows+'</table></div>' : '<div class="empty" style="margin-top:14px;">暂无在制报工记录。</div>';
+  return '<div class="note">验收类工序（如原料验收、检验入库）若验收后即可判定完成，可选<b>「直接完成」</b>——无需填写数量，该工序完成率直接按 <b>100%</b> 计入订单完成情况与进度看板，突出工作重点。</div>'+form+table;
+}
+function doneBlock(){
+  var allActive = activePlans();
+  if(!allActive.length) return '<div class="empty">暂无在制订单。可在「历史记录」中查看或恢复已归档订单。</div>';
+  var list = allActive.filter(function(p){
+    var st=planStats(p);
+    if(doneFilter!=='全部' && st.status!==doneFilter) return false;
+    if(doneQuery){
+      var q=doneQuery.toLowerCase();
+      var hay=(p.orderNo+' '+planLabel(p)+' '+p.product+' '+(p.matCode||'')+' '+(p.spec||'')).toLowerCase();
+      if(hay.indexOf(q)<0) return false;
+    }
+    return true;
+  });
+  var stat = planCountStats();
+  var doneCount = allActive.filter(function(p){ return planStats(p).status==='已完成'; }).length;
+  var filterBar = '<div class="chips" style="margin:10px 0 12px;flex-wrap:wrap;gap:8px;">'
+    + ['全部','未开工','进行中','已完成','逾期'].map(function(f){ return '<button class="'+(doneFilter===f?'pri':'')+'" data-df="'+f+'">'+f+'</button>'; }).join('')
+    + '<input type="search" id="done-kw" placeholder="搜索订单号/产品/物料编码" value="'+esc(doneQuery)+'" style="width:210px;">'
+    + '<button class="mini-btn'+(doneCount?' pri':'')+'" data-act="arc-all-done" title="'+(doneCount?('一键归档全部已完成订单（共 '+doneCount+' 个）'):'当前没有已完成的订单')+'">归档全部已完成订单（'+doneCount+'）</button>'
+    + '</div>';
+  var countLine = '<div class="chips" style="margin-bottom:12px;">'
+    + '<span class="chip">在制订单 '+stat.total+'</span>'
+    + '<span class="chip">进行中 '+stat.doing+'</span>'
+    + '<span class="chip">已完成 '+stat.done+'</span>'
+    + '<span class="chip" style="background:#fde8e6;color:var(--red);">逾期 '+stat.late+'</span>'
+    + '<span class="chip" style="background:#eceff3;color:#5b6470;">未开工 '+stat.idle+'</span>'
+    + '<span class="chip" style="background:#eef7ee;color:var(--green);">筛选结果 '+list.length+'</span></div>';
+  var html='';
+  if(!list.length){
+    html='<div class="empty">该筛选条件下暂无订单。可点击上方「全部」查看所有在制订单。</div>';
+  } else {
+    list.forEach(function(p){
+      var st = planStats(p);
+      var ed = !!editDoneIds[p.id];
+      html += '<div class="rowtitle dnh">'+esc(p.orderNo)+' · '+esc(p.matCode||'—')+' · '+esc(p.product)+'（成品计划 '+fmtN(p.planQty)+' '+esc(p.unit||'')+'，'+esc(p.spec)+'）　整体完成率 '+Math.round(st.overall)+'%　'+statusBadge(st.status)
+        + '<span style="flex:1;"></span>'
+        + (ed?'<span class="badge b-doing">编辑中：可直接修改单位与计划数</span>':'')
+        + '　<button class="mini-btn'+(ed?' pri':'')+'" data-act="edit-done" data-id="'+p.id+'">'+(ed?'完成编辑':'编辑')+'</button>'
+        + '　<button class="mini-btn" data-act="arc-plan" data-id="'+p.id+'">归档该订单</button></div>';
+      html += '<div class="tw" style="margin-bottom:14px;"><table class="grid"><tr><th>工序</th><th>单位</th><th class="num">计划数</th><th class="num">领料实领</th><th class="num">报工总数</th><th class="num">合格数</th><th class="num">不合格</th><th style="min-width:150px;">完成率</th><th>说明</th></tr>';
+      st.rows.forEach(function(r){
+        var unitCell, planCell;
+        if(ed){
+          unitCell = '<td data-label="单位"><input class="unit" type="text" value="'+esc(r.unit)+'" data-act="unit" data-id="'+p.id+'" data-proc="'+esc(r.process)+'" title="修改该工序计量单位"></td>';
+          planCell = '<td class="num" data-label="计划数"><input class="mini" type="number" value="'+(r.plan===null||r.plan===undefined?'':r.plan)+'" data-act="planqty" data-id="'+p.id+'" data-proc="'+esc(r.process)+'" title="可编辑计划数"></td>';
+        } else {
+          unitCell = '<td class="muted" data-label="单位">'+esc(r.unit||'—')+'</td>';
+          planCell = '<td class="num" data-label="计划数">'+fmtN(r.plan)+'</td>';
+        }
+        html += '<tr'+(r.done?' class="isdone"':'')+'><td data-label="工序">'+esc(r.process)+(r.done?' <span class="badge b-done">✔完成</span>':'')+'</td>'
+          + unitCell + planCell
+          + '<td class="num" data-label="领料实领">'+fmtN(r.pickGot)+'</td><td class="num" data-label="报工总数">'+fmtN(r.rep)+'</td>'
+          + '<td class="num" data-label="合格数" style="color:var(--green);font-weight:600;">'+fmtN(r.ok)+'</td>'
+          + '<td class="num" data-label="不合格" style="color:'+(+r.ng>0?'var(--red)':'inherit')+';">'+fmtN(r.ng)+'</td>'
+          + '<td data-label="完成率">'+barHtml(r.rate)+'</td><td class="muted" data-label="说明">'+(r.done?'已点选完成，按 100% 计':(r.isFirst&&!r.cnt&&r.pickGot>0?'首道工序：按领料实领数计':'计划数'+r.planSrc+'；报工 '+r.cnt+' 次'))+'</td></tr>';
+      });
+      html += '</table></div>';
+    });
+  }
+  var note='<div class="note"><b>计算口径</b>：① <b>计划数</b>按工序分别取值——手工填写优先，首道工序未填写时自动取该订单<b>领料应领数合计</b>，其余工序默认取订单成品计划数；② <b>报工总数/合格数/不合格数</b>由该工序全部有效报工记录自动汇总，首道工序未报工时以<b>实领数</b>作为在制数；③ 已点选<b>「直接完成」</b>的工序完成率固定为 100%，不再比对数量。单位不同的工序各按自己的计划数计算，互不干扰。<br>④ 本页面默认为<b>预览状态</b>；需调整某订单的<b>计量单位</b>或<b>工序计划数</b>时，点该订单右侧的<b>「编辑」</b>按钮，改完点「完成编辑」回到预览。<b>归档该订单</b>会一并把该订单的排产计划、领料记录、报工记录转入「历史记录」。<br>⑤ 顶部可按<b>状态</b>或<b>关键字</b>筛选订单；已<b>完工（状态为「已完成」）</b>的订单可直接点<b>「归档全部已完成订单」</b>一键转入历史记录。</div>';
+  return filterBar + countLine + html + note;
+}
+function histBlock(){
+  var ap=S.plans.filter(function(p){return p.archived;});
+  var ak=S.pickings.filter(function(k){return k.archived;});
+  var ar=S.reports.filter(function(r){return r.archived;});
+  var s='<div class="note">历史记录用于长期留存备查：归档的数据不在主页面与看板展示，可随时<b>恢复</b>到在制列表；<b>彻底删除后不可追溯</b>，请谨慎操作。未完成的订单同样可以归档。</div>';
+  s+='<div class="subblock"><h4>归档订单（'+ap.length+'）</h4>';
+  s+= ap.length ? '<div class="tw"><table class="grid"><tr><th>订单号</th><th>物料编码</th><th>产品</th><th class="num">成品计划数</th><th>计划周期</th><th>归档日期</th><th>归档说明</th><th>操作</th></tr>'
+    + ap.map(function(p){ return '<tr><td data-label="订单号"><b>'+esc(p.orderNo)+'</b></td><td data-label="物料编码">'+esc(p.matCode||'—')+'</td><td data-label="产品">'+esc(p.product)+'</td><td class="num" data-label="成品计划数">'+fmtN(p.planQty)+' '+esc(p.unit||'')+'</td><td data-label="计划周期">'+esc(p.start)+' ~ '+esc(p.due)+'</td><td data-label="归档日期">'+esc(p.archivedAt||'-')+'</td><td class="muted" data-label="归档说明">'+esc(p.archivedNote||'-')+'</td><td data-label="操作" style="white-space:nowrap;"><button data-act="unarc-plan" data-id="'+p.id+'">恢复</button> <button class="danger" data-act="pdel-plan" data-id="'+p.id+'">彻底删除</button></td></tr>'; }).join('')
+    + '</table></div>' : '<div class="empty">暂无归档订单。</div>';
+  s+='</div>';
+  s+='<div class="subblock"><h4>归档领料记录（'+ak.length+'）</h4>';
+  s+= ak.length ? '<div class="tw"><table class="grid"><tr><th>生产订单</th><th>工序</th><th>物料编号</th><th>物料</th><th class="num">应领</th><th class="num">实领</th><th>领料人</th><th>日期</th><th>归档说明</th><th>操作</th></tr>'
+    + ak.map(function(k){ var p=planById(k.planId); return '<tr><td data-label="生产订单">'+esc(p?planLabel(p):'（订单已删除）')+'</td><td data-label="工序">'+esc(k.process||'-')+'</td><td data-label="物料编号">'+esc(k.matCode||'-')+'</td><td data-label="物料">'+esc(k.material)+'</td><td class="num" data-label="应领">'+fmtN(k.qtyNeed)+'</td><td class="num" data-label="实领">'+fmtN(k.qtyGot)+'</td><td data-label="领料人">'+esc(k.picker)+'</td><td data-label="日期">'+esc(k.date)+'</td><td class="muted" data-label="归档说明">'+esc(k.archivedNote||'-')+'</td><td data-label="操作" style="white-space:nowrap;"><button data-act="unarc-pick" data-id="'+k.id+'">恢复</button> <button class="danger" data-act="pdel-pick" data-id="'+k.id+'">彻底删除</button></td></tr>'; }).join('')
+    + '</table></div>' : '<div class="empty">暂无归档领料记录。</div>';
+  s+='</div>';
+  s+='<div class="subblock"><h4>归档报工记录（'+ar.length+'）</h4>';
+  s+= ar.length ? '<div class="tw"><table class="grid"><tr><th>生产订单</th><th>工序</th><th class="num">报工</th><th class="num">合格</th><th class="num">不合格</th><th>报工人</th><th>日期</th><th>归档说明</th><th>操作</th></tr>'
+    + ar.map(function(r){ var p=planById(r.planId); return '<tr><td data-label="生产订单">'+esc(p?planLabel(p):'（订单已删除）')+'</td><td data-label="工序">'+esc(r.process)+(r.done?' <span class="badge b-done">✔完成</span>':'')+'</td><td class="num" data-label="报工">'+(r.done?'—':fmtN(r.qty))+'</td><td class="num" data-label="合格">'+(r.done?'—':fmtN(r.okQty))+'</td><td class="num" data-label="不合格">'+(r.done?'—':fmtN(r.ngQty))+'</td><td data-label="报工人">'+esc(r.reporter)+'</td><td data-label="日期">'+esc(r.date)+'</td><td class="muted" data-label="归档说明">'+esc(r.archivedNote||'-')+'</td><td data-label="操作" style="white-space:nowrap;"><button data-act="unarc-report" data-id="'+r.id+'">恢复</button> <button class="danger" data-act="pdel-report" data-id="'+r.id+'">彻底删除</button></td></tr>'; }).join('')
+    + '</table></div>' : '<div class="empty">暂无归档报工记录。</div>';
+  s+='</div>';
+  return s;
+}
+
+/* SECTION: archive */
+function openArchive(kind,id){
+  var p=planById(id); if(!p) return;
+  var np=actPickings(id).length, nr=actReports(id).length;
+  var body='<div class="note">归档后，该订单的<b>排产计划</b>连同其下 <b>'+np+' 条生产领料</b>、<b>'+nr+' 条工序报工</b>记录一并从主页面与进度看板移出，转入「历史记录」长期留存备查，可随时整单恢复；<b>彻底删除则不可追溯</b>。未完成的订单同样可以归档。</div>'
+    +'<div class="fld" style="margin-bottom:10px;"><label>归档说明（可选）</label><input type="text" id="ar-note" style="width:100%;" placeholder="如：订单已完工入库 / 客户暂停，留存备查"></div>'
+    +'<div class="muted" style="margin-top:10px;">归档对象：'+esc(planLabel(p))+'</div>';
+  openModal('归档订单', body, '<button data-m="close">取消</button><button class="pri" data-m="do-archive" data-kind="plan" data-id="'+esc(id)+'">确认归档</button>');
+}
+function doArchive(kind,id,note){
+  var t=todayStr();
+  function mark(o){ o.archived=true; o.archivedAt=t; o.archivedNote=note||''; }
+  var p=planById(id); if(!p) return;
+  mark(p);
+  delete editDoneIds[id];
+  S.pickings.forEach(function(k){ if(k.planId===id) mark(k); });
+  S.reports.forEach(function(r){ if(r.planId===id) mark(r); });
+  save(); closeModal(); renderAll(); toast('订单【'+p.orderNo+'】及其领料、报工记录已归档');
+}
+function unarchive(kind,id){
+  var planId=null, tip='';
+  function back(o){ o.archived=false; delete o.archivedAt; delete o.archivedNote; }
+  if(kind==='plan'){
+    var p=planById(id); if(!p) return; back(p);
+    var cnt=0;
+    S.pickings.forEach(function(k){ if(k.planId===id && k.archived){ back(k); cnt++; } });
+    S.reports.forEach(function(r){ if(r.planId===id && r.archived){ back(r); cnt++; } });
+    if(cnt) tip='（含其下 '+cnt+' 条领料/报工记录一并恢复）';
+  }
+  else if(kind==='pick'){ S.pickings.forEach(function(k){ if(k.id===id){ back(k); planId=k.planId; } }); }
+  else { S.reports.forEach(function(r){ if(r.id===id){ back(r); planId=r.planId; } }); }
+  if(planId){ var pp=planById(planId); if(pp&&pp.archived){ back(pp); tip='（所属订单一并恢复）'; } }
+  save(); renderAll(); toast('已恢复到在制列表'+tip);
+}
+function purge(kind,id){
+  if(!confirm('彻底删除后不可恢复、不可追溯，确定继续？\n（如仅需从主页面移出，请改用「归档」）')) return;
+  if(kind==='plan'){
+    var p=planById(id);
+    S.plans=S.plans.filter(function(x){return x.id!==id;});
+    S.pickings=S.pickings.filter(function(x){return x.planId!==id;});
+    S.reports=S.reports.filter(function(x){return x.planId!==id;});
+    if(p) toast('已彻底删除订单【'+p.orderNo+'】及其全部记录');
+  } else if(kind==='pick'){ S.pickings=S.pickings.filter(function(x){return x.id!==id;}); toast('已彻底删除该领料记录'); }
+  else { S.reports=S.reports.filter(function(x){return x.id!==id;}); toast('已彻底删除该报工记录'); }
+  save(); renderAll();
+}
+
+/* SECTION: records-handlers */
+function fillProcOptions(selPlanId, selProcId, unitId){
+  var pe=document.getElementById(selPlanId); if(!pe) return;
+  var p = planById(pe.value);
+  var sel = document.getElementById(selProcId); if(!sel) return;
+  sel.innerHTML = (p && p.processes && p.processes.length) ? p.processes.map(function(x){ return '<option>'+esc(x)+'</option>'; }).join('') : '<option value="">（订单未配置工序）</option>';
+  showUnit(p, sel.value, unitId);
+}
+function showUnit(p, proc, unitId){
+  if(!unitId) return;
+  var el=document.getElementById(unitId); if(!el) return;
+  el.textContent = p&&proc ? '（单位：'+(procUnit(p,proc)||'—')+'）' : '';
+}
+function bindPlanForm(){
+  var btn = document.getElementById('btn-plan-save'); if(!btn) return;
+  btn.onclick = function(){
+    var v = function(id){ var e=document.getElementById(id); return e?e.value.trim():''; };
+    var orderNo=v('f-po'), product=v('f-pd'), qty=+v('f-pq');
+    if(!orderNo||!product||!(qty>0)){ toast('请填写订单号、产品名称与有效的成品计划数'); return; }
+    if(!editPlanId && S.plans.some(function(x){ return x.orderNo===orderNo; })){ toast('订单号已存在：'+orderNo); return; }
+    var procs = v('f-prc').split(/[、，,;；]+/).map(function(x){return x.trim();}).filter(function(x){return x;});
+    if(!procs.length) procs=['（未配置工序）'];
+    var metas = v('f-pqq').split(/[、，,;；]+/);
+    var base = { orderNo:orderNo, matCode:v('f-mc'), product:product, spec:v('f-ps'), planQty:qty, unit:v('f-pun')||'件', processes:procs, start:v('f-pt'), due:v('f-pu') };
+    if(editPlanId){
+      var p=planById(editPlanId); if(!p) return;
+      var oldMeta=p.procMeta||{};
+      for(var k in base) p[k]=base[k];
+      p.procMeta={};
+      procs.forEach(function(pr,i){
+        var prev=oldMeta[pr]||{};
+        var raw=(metas[i]||'').trim();
+        var m={ unit: prev.unit || (i===0?'kg':base.unit), qty: (typeof prev.qty==='number'?prev.qty:null) };
+        if(raw){
+          var parts=raw.split(/[\/／]/);
+          var q=parts[0].trim(), u=(parts[1]||'').trim();
+          if(q!==''&&!isNaN(+q)) m.qty=+q; else if(q==='') m.qty=null;
+          if(u) m.unit=u;
+        }
+        p.procMeta[pr]=m;
+      });
+      editPlanId=null; toast('排产单已更新');
+    } else {
+      base.id = uid(); base.procMeta={}; base.archived=false;
+      procs.forEach(function(pr,i){
+        var raw=(metas[i]||'').trim();
+        var m={ unit: i===0?'kg':base.unit, qty:null };
+        if(raw){
+          var parts=raw.split(/[\/／]/);
+          var q=parts[0].trim(), u=(parts[1]||'').trim();
+          if(q!==''&&!isNaN(+q)) m.qty=+q;
+          if(u) m.unit=u;
+        }
+        base.procMeta[pr]=m;
+      });
+      S.plans.push(base); toast('已新增排产计划：'+orderNo);
+    }
+    save(); renderAll();
+  };
+  var cancel = document.getElementById('btn-plan-cancel');
+  if(cancel) cancel.onclick = function(){ editPlanId=null; renderData(); bindPlanForm(); bindProcSelects(); };
+}
+function bindProcSelects(){
+  var a=document.getElementById('f-kp'), b=document.getElementById('f-rp');
+  if(a){ a.onchange=function(){ fillProcOptions('f-kp','f-kpr','f-kunit'); }; fillProcOptions('f-kp','f-kpr','f-kunit'); }
+  if(b){ b.onchange=function(){ fillProcOptions('f-rp','f-rpr','f-runit'); }; fillProcOptions('f-rp','f-rpr','f-runit'); }
+  var pr=document.getElementById('f-rpr');
+  if(pr) pr.onchange=function(){ showUnit(planById(document.getElementById('f-rp').value), this.value, 'f-runit'); };
+  var kpr=document.getElementById('f-kpr');
+  if(kpr) kpr.onchange=function(){ showUnit(planById(document.getElementById('f-kp').value), this.value, 'f-kunit'); };
+  var rmN=document.getElementById('rmode-num'), rmD=document.getElementById('rmode-done'), tip=document.getElementById('rmode-tip');
+  function syncMode(){
+    var done = rmD && rmD.checked;
+    ['fld-rq','fld-ro','fld-rn'].forEach(function(fid){ var e=document.getElementById(fid); if(e) e.hidden = !!done; });
+    ['f-rq','f-ro','f-rn'].forEach(function(fid){ var e=document.getElementById(fid); if(e){ e.disabled=!!done; if(done) e.value=''; } });
+    if(tip) tip.innerHTML = done ? '已选择「直接完成」：该工序验收后视为完成，完成率按 100% 计入，无需填写数量。' : '按实际产出填写数量；合格数 + 不合格数不应大于报工数量。';
+  }
+  if(rmN){ rmN.onchange=syncMode; } if(rmD){ rmD.onchange=syncMode; } syncMode();
+  var pb=document.getElementById('btn-pick-add');
+  if(pb) pb.onclick=function(){
+    var gv=function(id){ var e=document.getElementById(id); return e?e.value.trim():''; };
+    if(!gv('f-km')||!gv('f-kw')){ toast('请填写物料名称与领料人'); return; }
+    var need=+gv('f-kn'), got=+gv('f-kg');
+    if(!(need>0)||!(got>=0)){ toast('请填写有效的应领/实领数量'); return; }
+    var planId=gv('f-kp'); if(!planId){ toast('请选择生产订单'); return; }
+    S.pickings.push({ id:uid(), planId:planId, process:document.getElementById('f-kpr').value, matCode:gv('f-kb'), material:gv('f-km'), spec:gv('f-ks'), qtyNeed:need, qtyGot:got, picker:gv('f-kw'), date:gv('f-kd'), archived:false });
+    save(); renderAll(); toast('领料已登记，完成情况已联动更新');
+  };
+  var rb=document.getElementById('btn-report-add');
+  if(rb) rb.onclick=function(){
+    var gv=function(id){ var e=document.getElementById(id); return e?e.value.trim():''; };
+    var planId=gv('f-rp'); if(!planId){ toast('请选择生产订单'); return; }
+    var proc=document.getElementById('f-rpr').value;
+    if(!proc){ toast('该订单未配置工序，请先在排产计划中填写工序清单'); return; }
+    if(!gv('f-rw')){ toast('请填写报工人'); return; }
+    var isDone = document.getElementById('rmode-done') && document.getElementById('rmode-done').checked;
+    var rec={ id:uid(), planId:planId, process:proc, reporter:gv('f-rw'), shift:document.getElementById('f-rs').value, date:gv('f-rd'), archived:false };
+    if(isDone){
+      rec.done=true; rec.qty=null; rec.okQty=null; rec.ngQty=null;
+    } else {
+      var qty=+gv('f-rq'), ok=+gv('f-ro'), ng=+gv('f-rn')||0;
+      if(!(qty>0)){ toast('请填写报工数量，或改选「直接完成」'); return; }
+      if(!(ok>=0)){ toast('请填写合格数'); return; }
+      if(ok+ng>qty){ toast('合格数 + 不合格数不能大于报工数量'); return; }
+      rec.done=false; rec.qty=qty; rec.okQty=ok; rec.ngQty=ng;
+    }
+    S.reports.push(rec);
+    save(); renderAll(); toast(isDone?'已记录「'+proc+'」完成，完成率按 100% 计入':'报工已提交，完成情况与看板已联动更新');
+  };
+}
+document.getElementById('view-data').addEventListener('click', function(ev){
+  var tab = ev.target.closest('[data-tab]');
+  if(tab){ S.dataTab = tab.getAttribute('data-tab'); save(); renderData(); bindPlanForm(); bindProcSelects(); return; }
+  var df = ev.target.closest('[data-df]');
+  if(df){ doneFilter = df.getAttribute('data-df'); renderData(); bindPlanForm(); bindProcSelects(); return; }
+  var b = ev.target.closest('button'); if(!b) return;
+  var mAttr = b.getAttribute('data-m');
+  if(mAttr==='imp-open'){ openImport(b.getAttribute('data-kind')); return; }
+  if(mAttr==='tpl'){ downloadTemplate(b.getAttribute('data-kind')); return; }
+  if(mAttr==='export-all'){ exportAll(); return; }
+  var act=b.getAttribute('data-act'), id=b.getAttribute('data-id');
+  if(act==='edit-plan'){ editPlanId=id; renderData(); bindPlanForm(); bindProcSelects(); var pd=document.getElementById('view-data').querySelector('.pad'); if(pd) pd.scrollIntoView({behavior:'smooth'}); }
+  if(act==='edit-done'){ editDoneIds[id] = !editDoneIds[id]; renderData(); bindPlanForm(); bindProcSelects(); }
+  if(act==='arc-plan'){ openArchive('plan', id); }
+  if(act==='arc-all-done'){
+    var donePlans = activePlans().filter(function(p){ return planStats(p).status==='已完成'; });
+    if(!donePlans.length){ toast('当前没有已完成的订单可归档'); return; }
+    if(!confirm('将把以下 '+donePlans.length+' 个【已完成】订单一并归档（含其领料、报工记录）：\n'+donePlans.map(function(p){ return '· '+p.orderNo+' '+p.product; }).join('\n')+'\n\n归档后可到「历史记录」随时恢复。确定继续？')) return;
+    var t=todayStr();
+    donePlans.forEach(function(p){
+      p.archived=true; p.archivedAt=t; p.archivedNote=p.archivedNote||'批量归档：订单已完成';
+      delete editDoneIds[p.id];
+      S.pickings.forEach(function(k){ if(k.planId===p.id){ k.archived=true; k.archivedAt=t; k.archivedNote=k.archivedNote||'批量归档'; } });
+      S.reports.forEach(function(r){ if(r.planId===p.id){ r.archived=true; r.archivedAt=t; r.archivedNote=r.archivedNote||'批量归档'; } });
+    });
+    save(); renderAll(); toast('已归档 '+donePlans.length+' 个已完成订单');
+    return;
+  }
+  if(act==='unarc-plan'){ unarchive('plan',id); } if(act==='unarc-pick'){ unarchive('pick',id); } if(act==='unarc-report'){ unarchive('report',id); }
+  if(act==='pdel-plan'){ purge('plan',id); } if(act==='pdel-pick'){ purge('pick',id); } if(act==='pdel-report'){ purge('report',id); }
+  if(act==='del-plan'){ var p=planById(id); if(!p) return; if(confirm('删除排产单【'+p.orderNo+'】及其全部领料、报工记录？删除后不可追溯。\n如只想从主页面移出，请改用「归档」。')){ S.plans=S.plans.filter(function(x){return x.id!==id;}); S.pickings=S.pickings.filter(function(x){return x.planId!==id;}); S.reports=S.reports.filter(function(x){return x.planId!==id;}); save(); renderAll(); toast('已删除'); } }
+  if(act==='del-pick'){ if(confirm('删除该领料记录？删除后不可追溯。\n如只想从主页面移出，请改用「归档」。')){ S.pickings=S.pickings.filter(function(x){return x.id!==id;}); save(); renderAll(); toast('已删除'); } }
+  if(act==='del-report'){ if(confirm('删除该报工记录？完成情况将回退，删除后不可追溯。\n如只想从主页面移出，请改用「归档」。')){ S.reports=S.reports.filter(function(x){return x.id!==id;}); save(); renderAll(); toast('已删除'); } }
+});
+document.getElementById('view-data').addEventListener('change', function(ev){
+  var el=ev.target, act=el.getAttribute && el.getAttribute('data-act');
+  if(act!=='planqty' && act!=='unit') return;
+  var p=planById(el.getAttribute('data-id')); if(!p) return;
+  var proc=el.getAttribute('data-proc');
+  if(!p.procMeta) p.procMeta={};
+  if(!p.procMeta[proc]) p.procMeta[proc]={ unit:procUnit(p,proc), qty:null };
+  if(act==='planqty'){
+    var v=el.value.trim();
+    p.procMeta[proc].qty = v===''?null:(isNaN(+v)?null:+v);
+  } else {
+    p.procMeta[proc].unit = el.value.trim();
+  }
+  save(); renderData(); bindPlanForm(); bindProcSelects();
+});
+
+/* SECTION: board-view */
+var boardFilter='全部', boardKw='';
+var doneFilter='全部', doneQuery='';
+function renderBoard(){
+  var cards='';
+  var shown=0;
+  activePlans().forEach(function(p){
+    var st=planStats(p);
+    if(boardFilter!=='全部' && st.status!==boardFilter) return;
+    if(boardKw && planLabel(p).toLowerCase().indexOf(boardKw.toLowerCase())<0 && p.orderNo.indexOf(boardKw)<0) return;
+    shown++;
+    var procs = st.rows.map(function(r){
+      return '<div class="krow"><span class="pn">'+esc(r.process)+(r.done?' ✔':'')+'</span>'+barHtml(r.rate)+'<span class="muted" style="min-width:130px;text-align:right;">'+(r.done?'已完成':'合格 '+fmtN(r.ok)+' / 计划 '+fmtN(r.plan)+' '+esc(r.unit))+'</span></div>';
+    }).join('');
+    cards += '<div class="kcard" style="'+(st.status==='逾期'?'border-color:var(--red);box-shadow:0 0 0 1px var(--red);':'')+'">'
+      + '<h3><span>'+esc(p.orderNo)+' · '+esc(p.matCode||'—')+'</span>'+statusBadge(st.status)+'</h3>'
+      + '<div><b>'+esc(p.product)+'</b> <span class="muted">'+esc(p.spec)+'</span></div>'
+      + '<div class="kmeta"><span>计划周期：'+esc(p.start)+' ~ '+esc(p.due)+'</span><span>成品计划：'+fmtN(p.planQty)+' '+esc(p.unit||'')+'</span></div>'
+      + '<div class="krow"><span class="pn">整体进度</span>'+barHtml(st.overall)+'<span class="muted" style="text-align:right;min-width:70px;">'+(st.overall>=100?'全部工序完成':'各工序平均')+'</span></div>'
+      + '<div style="border-top:1px dashed var(--line);padding-top:6px;">'+procs+'</div></div>';
+  });
+  var stat = planCountStats();
+  document.getElementById('view-board').innerHTML =
+    '<div class="card"><h2><span>生产进度看板</span><span class="chips">'
+    + ['全部','未开工','进行中','已完成','逾期'].map(function(f){ return '<button class="'+(boardFilter===f?'pri':'')+'" data-bf="'+f+'">'+f+'</button>'; }).join('')
+    + '<input type="search" id="board-kw" placeholder="搜索订单号/产品" value="'+esc(boardKw)+'" style="width:160px;"></span></h2>'
+    + '<div class="pad"><div class="chips" style="margin-bottom:12px;">'
+    + '<span class="chip">在制订单 '+stat.total+'</span><span class="chip">进行中 '+stat.doing+'</span><span class="chip">已完成 '+stat.done+'</span><span class="chip" style="background:#fde8e6;color:var(--red);">逾期 '+stat.late+'</span><span class="chip" style="background:#eceff3;color:#5b6470;">未开工 '+stat.idle+'</span></div>'
+    + '<div class="muted" style="margin-bottom:12px;">看板仅展示在制订单；已归档订单请到「生产数据记录 → 历史记录」查看或恢复。已点选「完成」的工序按 100% 计入。</div>'
+    + (shown?'<div class="kwrap">'+cards+'</div>':'<div class="empty">该筛选条件下暂无订单。</div>')
+    + '</div></div>';
+  var kw=document.getElementById('board-kw');
+  if(kw) kw.oninput=function(){ boardKw=this.value; var pos=this.selectionStart; renderBoard(); var nk=document.getElementById('board-kw'); if(nk){ nk.focus(); try{ nk.setSelectionRange(pos,pos); }catch(e){} } };
+}
+function planCountStats(){ var c={total:0,doing:0,done:0,late:0,idle:0}; activePlans().forEach(function(p){ c.total++; var s=planStats(p).status; c[s==='未开工'?'idle':s==='进行中'?'doing':s==='已完成'?'done':'late']++; }); return c; }
+document.getElementById('view-board').addEventListener('click', function(ev){ var b=ev.target.closest('[data-bf]'); if(b){ boardFilter=b.getAttribute('data-bf'); renderBoard(); } });
+
+/* SECTION: canvas-view */
+var cvEditing=false;
+function cvFind(id){ for(var i=0;i<S.canvases.length;i++) if(S.canvases[i].id===id) return S.canvases[i]; return null; }
+function cvCounts(c){ var st=0,tl=0; c.stages.forEach(function(g){ st+=g.steps.length; }); c.supports.forEach(function(g){ tl+=g.items.length; }); return {st:st,tl:tl}; }
+function cvMigrateAll(){
+  S.canvases.forEach(function(c){
+    if(!Array.isArray(c.stages)) c.stages=[];
+    if(!Array.isArray(c.stageIfaces)) c.stageIfaces=c.stages.map(function(){return '';});
+    while(c.stageIfaces.length<c.stages.length) c.stageIfaces.push('');
+    c.stageIfaces.length=c.stages.length;
+    if(!Array.isArray(c.supports)) c.supports=[];
+    while(c.supports.length<c.stages.length) c.supports.push({items:[]});
+    c.supports.length=c.stages.length;
+  });
+  if(!Array.isArray(S.templates)) S.templates=[];
+}
+function renderCanvasView(){ cvEditing ? renderCanvasPage(S.lastCanvas,true) : renderCanvasHome(); }
+function renderCanvasHome(){
+  cvEditing=false;
+  var cur = cvFind(S.lastCanvas) || S.canvases[0];
+  if(cur) S.lastCanvas = cur.id;
+  var opts = S.canvases.map(function(c){ return '<option value="'+c.id+'"'+(cur&&c.id===cur.id?' selected':'')+'>'+esc(c.title)+'</option>'; }).join('');
+  var flow = cur ? cur.stages.map(function(g,i){ return (i?'<div class="farr">→</div>':'')+'<div class="fnode"><b>'+esc(g.name)+'</b><span>'+g.steps.map(esc).join(' · ')+'</span></div>'; }).join('') : '<span class="muted">暂无画布</span>';
+  var dir = S.canvases.map(function(c){
+    var n=cvCounts(c);
+    return '<div class="dir-item"><div><div class="t"><a class="link" href="javascript:void(0)" data-cv-act="open" data-id="'+c.id+'">'+esc(c.title)+'</a></div>'
+      + '<div class="m">用户：'+esc(c.user)+' ｜ 操作者：'+esc(c.operator)+' ｜ '+n.st+' 个步骤 · '+n.tl+' 个设备</div></div>'
+      + '<div><button data-cv-act="open" data-id="'+c.id+'">打开画布</button> <button data-cv-act="del" data-id="'+c.id+'" class="danger">删除</button></div></div>';
+  }).join('');
+  document.getElementById('view-canvas').innerHTML =
+    '<div class="card"><h2><span>1 · 工艺流程图</span><span class="chips"><select id="cv-flow-sel">'+opts+'</select></span></h2>'
+    + '<div class="pad"><div class="flow">'+flow+'</div><div class="muted" style="margin-top:8px">流程随画布编辑实时同步；切换主题查看对应流程。</div></div></div>'
+    + '<div class="card"><h2><span>2 · 工作画布目录</span><span class="chips"><button class="pri" data-cv-act="new">新建画布</button><button data-cv-act="newtpl">从模板新建</button><button data-cv-act="exportdata">导出数据</button><button data-cv-act="importdata">导入数据</button></span></h2>'
+    + '<div class="pad"><div class="muted" style="margin-bottom:8px">提示：画布与生产记录都保存在当前浏览器本地。跨设备转移请用「导出数据/导入数据」（导出内容包含生产记录与画布）。</div>'+(dir||'<div class="empty">暂无画布，点击「新建画布」开始。</div>')+'</div></div>';
+  var sel=document.getElementById('cv-flow-sel');
+  if(sel) sel.onchange=function(){ S.lastCanvas=this.value; save(); renderCanvasHome(); };
+}
+function renderCanvasPage(id,ed){
+  var c=cvFind(id); if(!c){ renderCanvasHome(); return; }
+  S.lastCanvas=id; save(); cvEditing=!!ed;
+  var n=cvCounts(c), E=cvEditing;
+  function tin(val,act,extra){ return E?'<input type="text" value="'+esc(val)+'" data-cv-edit="'+act+'" '+(extra||'')+'>':esc(val); }
+  var stages=c.stages.map(function(g,gi){
+    var steps=g.steps.map(function(s,si){
+      return '<span class="step">'+(E?'<input type="text" value="'+esc(s)+'" data-cv-edit="step" data-g="'+gi+'" data-i="'+si+'" style="width:78px;padding:2px 4px">':esc(s))
+        +(E?' <button data-cv-act="delstep" data-g="'+gi+'" data-i="'+si+'" class="danger">×</button>':'')+'</span>';
+    }).join('');
+    return '<div class="stage"><div class="sname">'+(E?'<input type="text" value="'+esc(g.name)+'" data-cv-edit="stage" data-g="'+gi+'" style="width:100%;text-align:center">':esc(g.name))
+      +(E?'<div style="margin-top:4px"><button data-cv-act="addstep" data-g="'+gi+'">+步骤</button> <button data-cv-act="delstage" data-g="'+gi+'" class="danger">删阶段</button></div>':'')
+      +'</div><div class="steps">'+steps+'</div></div>';
+  }).join('');
+  var ifaceCols=c.stages.map(function(g,gi){
+    var ifc=c.stageIfaces[gi]||'';
+    var inner=E?'<div class="iface-tag"><input type="text" value="'+esc(ifc)+'" data-cv-edit="siface" data-g="'+gi+'" placeholder="接口人员" style="width:100%;text-align:center"></div>'
+      :(ifc?'<div class="iface-tag"><b>接口：</b>'+esc(ifc)+'</div>':'');
+    return '<div class="stage">'+inner+'</div>';
+  }).join('');
+  var tools=c.supports.map(function(g,gi){
+    return '<span class="tgroup">'+g.items.map(function(t,ti){
+      return '<span class="tool">'+(E?'<input type="text" value="'+esc(t)+'" data-cv-edit="tool" data-g="'+gi+'" data-i="'+ti+'" style="width:70px;padding:2px 4px">':esc(t))
+        +(E?' <button data-cv-act="deltool" data-g="'+gi+'" data-i="'+ti+'" class="danger">×</button>':'')+'</span>';
+    }).join('')+(g.items.length||E?'':'<span class="muted">无设备</span>')+(E?'<button data-cv-act="addtool" data-g="'+gi+'">+设备</button>':'')+'</span>';
+  }).join('');
+  var tplOpts=S.templates.map(function(t,i){ return '<option value="'+i+'">'+esc(t.name)+'</option>'; }).join('');
+  document.getElementById('view-canvas').innerHTML =
+    '<div class="card"><h2><span>工作画布</span><span class="chips"><span class="chip">'+n.st+' 个步骤</span><span class="chip">'+n.tl+' 个设备</span>'
+    +'<button data-cv-act="home">返回目录</button>'+(E?'<button class="pri" data-cv-act="done">完成编辑</button>':'<button class="pri" data-cv-act="edit">编辑画布</button>')
+    +'<button data-cv-act="savetpl">存为模板</button>'+(S.templates.length?'<select id="cv-tpl-sel">'+tplOpts+'</select><button data-cv-act="importtpl">导入模板</button>':'')+'</span></h2>'
+    +'<div class="rowtitle">主题名称：'+tin(c.title,'title','style="width:70%"')+'</div>'
+    +'<table class="canvas">'
+    +'<tr><td class="lab">用户<br>'+tin(c.user,'user')+'</td><td></td></tr>'
+    +'<tr><td class="lab">操作者<br>'+tin(c.operator,'operator')+'</td><td><div class="stages">'+stages+'</div>'+(E?'<div class="editrow"><button data-cv-act="addstage">+ 阶段</button></div>':'')+'</td></tr>'
+    +'<tr><td class="lab">相关接口<br>'+tin(c.iface,'iface')+'</td><td><div class="stages">'+ifaceCols+'</div></td></tr>'
+    +'<tr><td class="lab">支持系统</td><td><div class="tools">'+tools+'</div></td></tr>'
+    +'</table></div>'
+    +'<div class="card"><h2><span>文字笔记</span><span class="chips"><button class="pri" data-cv-act="savenotes">保存笔记</button></span></h2>'
+    +'<div class="pad"><textarea id="cv-notes" placeholder="记录工艺要点、参数、改进想法……">'+esc(c.notes||'')+'</textarea></div></div>';
+}
+document.getElementById('view-canvas').addEventListener('click', function(ev){
+  var b=ev.target.closest('[data-cv-act]'); if(!b) return;
+  var act=b.getAttribute('data-cv-act'), id=b.getAttribute('data-id');
+  var g=+b.getAttribute('data-g'), i=+b.getAttribute('data-i');
+  var c=cvFind(S.lastCanvas);
+  if(act==='open'){ renderCanvasPage(id,false); return; }
+  if(act==='home'){ renderCanvasHome(); return; }
+  if(act==='del'){ if(confirm('删除该画布？')){ S.canvases=S.canvases.filter(function(x){return x.id!==id;}); save(); renderCanvasHome(); toast('已删除'); } return; }
+  if(act==='new'){ var t=prompt('新画布主题名称：','新主题'); if(!t) return; S.canvases.push({ id:uid(), title:t, user:'', operator:'', iface:'', stageIfaces:[''], stages:[{name:'阶段1',steps:['步骤1']}], supports:[{items:[]}], notes:'' }); save(); renderCanvasHome(); toast('已新建'); return; }
+  if(act==='newtpl'){
+    if(!S.templates.length){ toast('暂无模板，请先在画布页存为模板'); return; }
+    var names=S.templates.map(function(x,k){ return (k+1)+'. '+x.name; }).join('\n');
+    var pick=prompt('输入模板序号新建画布：\n'+names,'1'); if(!pick) return;
+    var tp=S.templates[+pick-1]; if(!tp){ toast('序号无效'); return; }
+    var nt=prompt('新主题名称：',tp.name); if(!nt) return;
+    var nc=JSON.parse(JSON.stringify(tp.body)); nc.id=uid(); nc.title=nt; nc.notes='';
+    S.canvases.push(nc); save(); renderCanvasPage(nc.id,false); return;
+  }
+  if(!c) return;
+  if(act==='edit'){ renderCanvasPage(c.id,true); return; }
+  if(act==='done'){ renderCanvasPage(c.id,false); toast('画布已保存'); return; }
+  if(act==='addstage'){ c.stages.push({name:'新阶段',steps:[]}); c.stageIfaces.push(''); c.supports.push({items:[]}); save(); renderCanvasPage(c.id,true); return; }
+  if(act==='delstage'){ if(!confirm('删除阶段【'+c.stages[g].name+'】及其步骤？')) return; c.stages.splice(g,1); c.stageIfaces.splice(g,1); c.supports.splice(g,1); save(); renderCanvasPage(c.id,true); return; }
+  if(act==='addstep'){ c.stages[g].steps.push('新步骤'); save(); renderCanvasPage(c.id,true); return; }
+  if(act==='delstep'){ c.stages[g].steps.splice(i,1); save(); renderCanvasPage(c.id,true); return; }
+  if(act==='addtool'){ c.supports[g].items.push('新设备'); save(); renderCanvasPage(c.id,true); return; }
+  if(act==='deltool'){ c.supports[g].items.splice(i,1); save(); renderCanvasPage(c.id,true); return; }
+  if(act==='savetpl'){ var nm=prompt('模板名称：',c.title+' 模板'); if(!nm) return; S.templates.push({ name:nm, body:{ title:c.title, user:c.user, operator:c.operator, iface:c.iface, stageIfaces:c.stageIfaces, stages:c.stages, supports:c.supports, notes:'' } }); save(); toast('模板已保存：'+nm); return; }
+  if(act==='importtpl'){ var sel=document.getElementById('cv-tpl-sel'); var tp2=S.templates[+sel.value]; if(!tp2) return; if(!confirm('用模板【'+tp2.name+'】覆盖当前画布的阶段/接口/设备结构？')) return; var bd=JSON.parse(JSON.stringify(tp2.body)); c.stages=bd.stages; c.supports=bd.supports; c.stageIfaces=Array.isArray(bd.stageIfaces)?bd.stageIfaces:c.stages.map(function(){return '';}); if(!c.user)c.user=bd.user; if(!c.operator)c.operator=bd.operator; if(!c.iface)c.iface=bd.iface; save(); renderCanvasPage(c.id,cvEditing); toast('模板已导入'); return; }
+  if(act==='savenotes'){ c.notes=document.getElementById('cv-notes').value; save(); toast('笔记已保存'); return; }
+  if(act==='exportdata'){ var payload=JSON.stringify({ app:'车间生产工作台', version:2, exportedAt:new Date().toISOString(), data:S }, null, 2); downloadBlob(new Blob([payload],{type:'application/json'}),'车间生产数据-'+dateStr()+'.json'); toast('数据已导出（含在制/归档生产记录与画布）'); return; }
+  if(act==='importdata'){ var fi=document.getElementById('import-file'); fi.onchange=function(){ var f=fi.files[0]; if(!f) return; var rd=new FileReader(); rd.onload=function(){ try{ var obj=JSON.parse(rd.result); var d=obj.data||obj; if(!d||!Array.isArray(d.plans)||!Array.isArray(d.canvases)) throw new Error('bad'); if(confirm('确定=用导入数据【替换】当前全部数据；取消=【合并画布目录】（按id去重追加）')){ S=d; } else { var exist={}; S.canvases.forEach(function(x){exist[x.id]=true;}); d.canvases.forEach(function(x){ if(!exist[x.id]) S.canvases.push(x); }); (d.templates||[]).forEach(function(t){ S.templates.push(t); }); } migrate(); save(); renderAll(); toast('导入完成'); } catch(e){ toast('导入失败：文件格式不正确'); } fi.value=''; }; rd.readAsText(f,'utf-8'); }; fi.click(); return; }
+});
+document.getElementById('view-canvas').addEventListener('change', function(ev){
+  var el=ev.target; var act=el.getAttribute && el.getAttribute('data-cv-edit'); if(!act) return;
+  var c=cvFind(S.lastCanvas); if(!c) return;
+  var g=+el.getAttribute('data-g'), i=+el.getAttribute('data-i'), v=el.value;
+  if(act==='title') c.title=v; else if(act==='user') c.user=v; else if(act==='operator') c.operator=v; else if(act==='iface') c.iface=v;
+  else if(act==='stage') c.stages[g].name=v; else if(act==='step') c.stages[g].steps[i]=v; else if(act==='tool') c.supports[g].items[i]=v; else if(act==='siface') c.stageIfaces[g]=v;
+  save();
+});
+document.getElementById('view-canvas').addEventListener('keydown', function(ev){
+  if(ev.key==='Enter' && ev.target.tagName==='INPUT' && ev.target.hasAttribute('data-cv-edit')){ var c=cvFind(S.lastCanvas); if(c) renderCanvasPage(c.id,true); }
+});
+
+/* SECTION: excel-io */
+var TPL = {
+  plan:   ['订单号','物料编码','产品名称','规格','成品计划数','成品单位','计划开工','计划完工','工序清单(、分隔)','各工序计划数与单位(、分隔，格式 数量/单位)'],
+  pick:   ['订单号','工序','物料编号','物料名称','规格/批号','应领数量','实领数量','领料人','领料日期'],
+  report: ['订单号','工序','报工方式(数量/完成)','报工数量','合格数','不合格数','报工人','班次','报工日期']
+};
+var SAMPLE = {
+  plan:   [['MO-2026-0920','BOM-DEMO-001','示例产品A','500g×20袋/箱','400','箱','2026-09-20','2026-09-30','原料验收、炒制、包装、检验入库','/kg、350/kg、400/箱、400/箱']],
+  pick:   [['MO-2026-0920','原料验收','MAT-DEMO-001','主料A','批检合格','350','350','仓管-张三','2026-09-20']],
+  report: [['MO-2026-0920','原料验收','完成','','','','验收员-李四','早班','2026-09-20'],['MO-2026-0920','炒制','数量','180','175','5','炒制工-王五','中班','2026-09-22']]
+};
+function csvCell(s){ s=String(s==null?'':s); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+function toCSV(rows){ return rows.map(function(r){ return r.map(csvCell).join(','); }).join('\r\n'); }
+var KIND_CN = { plan:'排产计划', pick:'生产领料', report:'工序报工' };
+function downloadTemplate(kind, blank){
+  var rows = blank ? [TPL[kind]] : [TPL[kind]].concat(SAMPLE[kind]||[]);
+  var csv='\uFEFF'+toCSV(rows);
+  downloadBlob(new Blob([csv],{type:'text/csv;charset=utf-8'}), (blank?'空白模板-':'导入模板-')+KIND_CN[kind]+'.csv');
+  toast('模板已下载（CSV，Excel 可直接打开编辑）');
+}
+function parseCSV(text){
+  text=text.replace(/^\uFEFF/,'');
+  var rows=[], row=[], cur='', q=false;
+  for(var i=0;i<text.length;i++){
+    var ch=text[i];
+    if(q){ if(ch==='"'){ if(text[i+1]==='"'){ cur+='"'; i++; } else q=false; } else cur+=ch; }
+    else { if(ch==='"') q=true; else if(ch===','){ row.push(cur); cur=''; } else if(ch==='\n'){ row.push(cur); rows.push(row); row=[]; cur=''; } else if(ch==='\r'){ /*skip*/ } else cur+=ch; }
+  }
+  if(cur!==''||row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(function(r){ return r.some(function(c){ return String(c).trim()!==''; }); });
+}
+function parsePaste(text){
+  text=String(text||'').replace(/^\uFEFF/,'').replace(/\r/g,'');
+  var rows = text.split('\n').filter(function(l){ return l.trim()!=='' && !/^-+$/.test(l.trim()); })
+    .map(function(l){ return l.split('\t'); });
+  if(rows.length===1 && rows[0].length===1) rows = parseCSV(text);
+  return rows.filter(function(r){ return r.some(function(c){ return String(c).trim()!==''; }); });
+}
+function planByOrderNo(no){ for(var i=0;i<S.plans.length;i++) if(S.plans[i].orderNo===String(no).trim()) return S.plans[i]; return null; }
+function num(v){ v=String(v==null?'':v).trim().replace(/[,\s]/g,''); return v===''||isNaN(+v)?null:+v; }
+/* 表头别名映射：允许列顺序与模板不同，多余列自动忽略 */
+var HDR = {
+  plan:   [['订单号','生产订单号','订单编号','排产单号'],['物料编码','物料号','物料ID','BOM号','BOM编码'],['产品名称','产品','品名'],['规格','包装规格','规格型号'],['成品计划数','计划数','成品数量','计划数量'],['成品单位','单位'],['计划开工','开工日期','计划开始','开始日期'],['计划完工','完工日期','计划结束','结束日期','交期'],['工序清单','工序','工序路线','工艺流程'],['各工序计划数与单位','工序计划数','各工序计划数']],
+  pick:   [['订单号','生产订单号','订单编号'],['工序','工序名称'],['物料编号','物料编码','物料号','物料ID'],['物料名称','品名'],['规格/批号','规格','批号'],['应领数量','应领'],['实领数量','实领'],['领料人','领用人','经手人'],['领料日期','日期']],
+  report: [['订单号','生产订单号','订单编号'],['工序','工序名称'],['报工方式','方式'],['报工数量','报工数','数量'],['合格数','合格'],['不合格数','不合格','不良数'],['报工人','报工员','经手人'],['班次'],['报工日期','日期']]
+};
+function normH(s){ return String(s==null?'':s).replace(/[\s:：()（）*＊]/g,'').replace(/\/.*$/,''); }
+function colMap(kind, header){
+  var h = header.map(normH), map=[], hit=0;
+  HDR[kind].forEach(function(al){
+    var idx=-1;
+    for(var i=0;i<h.length && idx<0;i++){
+      if(!h[i]) continue;
+      for(var j=0;j<al.length;j++){
+        var k=normH(al[j]);
+        if(h[i]===k || h[i].indexOf(k)===0 || k.indexOf(h[i])===0){ idx=i; break; }
+      }
+    }
+    if(idx>=0) hit++;
+    map.push(idx);
+  });
+  return { map:map, hit:hit };
+}
+function looksLikeHeader(r){ return /订单|产品|工序|物料|报工|数量|日期|单位|班次|规格/.test(String(r==null?'':r.join(' '))); }
+function importRows(kind, rows){
+  if(!rows || !rows.length) return {ok:0,skip:0,msg:'未解析到数据行'};
+  var header, data, map = null;
+  if(looksLikeHeader(rows[0])){
+    header = rows[0]; data = rows.slice(1);
+    var cm = colMap(kind, header);
+    map = cm.map;
+    if(cm.hit < 3){ for(var i=0;i<map.length;i++) if(map[i]<0) map[i]=i; }
+  } else { header = TPL[kind]; data = rows; map = map2(TPL[kind].length); }
+  function C(r,i){ var k=map[i]; return (k>=0 && k<r.length) ? r[k] : ''; }
+  var ok=0, skip=0, errs=[];
+  if(kind==='plan'){
+    data.forEach(function(r,ri){
+      var orderNo=String(C(r,0)||'').trim(), matCode=String(C(r,1)||'').trim(), product=String(C(r,2)||'').trim(), qty=num(C(r,4));
+      if(!orderNo||!product||!(qty>0)){ skip++; errs.push('第'+(ri+1)+'行：订单号/产品名称/成品计划数缺失或无效'); return; }
+      if(planByOrderNo(orderNo)){ skip++; errs.push('第'+(ri+1)+'行：订单号 '+orderNo+' 已存在，跳过（如需修改请在排产计划中编辑）'); return; }
+      var procs=String(C(r,8)||'').split(/[、，,;；]+/).map(function(x){return x.trim();}).filter(function(x){return x;});
+      if(!procs.length) procs=['（未配置工序）'];
+      var metas=String(C(r,9)||'').split(/[、，,;；]+/);
+      var unit=String(C(r,5)||'').trim()||'件';
+      var p={ id:uid(), orderNo:orderNo, matCode:matCode, product:product, spec:String(C(r,3)||'').trim(), planQty:qty, unit:unit,
+        processes:procs, procMeta:{}, start:fixDate(C(r,6))||todayStr(), due:fixDate(C(r,7))||'', archived:false };
+      procs.forEach(function(pr,i){
+        var raw=String(metas[i]||'').trim(); var m={ unit: i===0?'kg':unit, qty:null };
+        if(raw){ var ps=raw.split(/[\/／]/); var q=ps[0].trim(), u=(ps[1]||'').trim(); if(q!==''&&!isNaN(+q)) m.qty=+q; if(u) m.unit=u; }
+        p.procMeta[pr]=m;
+      });
+      S.plans.push(p); ok++;
+    });
+  } else if(kind==='pick'){
+    data.forEach(function(r,ri){
+      var orderNo=String(C(r,0)||'').trim(); var p=planByOrderNo(orderNo);
+      if(!p){ skip++; errs.push('第'+(ri+1)+'行：找不到订单 '+(orderNo||'（空）')+'，请先导入或录入排产计划'); return; }
+      var need=num(C(r,5)), got=num(C(r,6));
+      if(!(need>0)||!(got>=0)){ skip++; errs.push('第'+(ri+1)+'行：应领/实领数量无效'); return; }
+      var proc=String(C(r,1)||'').trim();
+      if(proc && p.processes.indexOf(proc)<0){ p.processes.push(proc); if(!p.procMeta)p.procMeta={}; if(!p.procMeta[proc]) p.procMeta[proc]={unit:procUnit(p,proc),qty:null}; }
+      S.pickings.push({ id:uid(), planId:p.id, process:proc, matCode:String(C(r,2)||'').trim(), material:String(C(r,3)||'').trim(), spec:String(C(r,4)||'').trim(), qtyNeed:need, qtyGot:got, picker:String(C(r,7)||'').trim(), date:fixDate(C(r,8))||todayStr(), archived:false });
+      ok++;
+    });
+  } else {
+    data.forEach(function(r,ri){
+      var orderNo=String(C(r,0)||'').trim(); var p=planByOrderNo(orderNo);
+      if(!p){ skip++; errs.push('第'+(ri+1)+'行：找不到订单 '+(orderNo||'（空）')+'，请先导入或录入排产计划'); return; }
+      var mode=String(C(r,2)||'').trim(); var proc=String(C(r,1)||'').trim();
+      if(!proc){ skip++; errs.push('第'+(ri+1)+'行：工序为空'); return; }
+      if(p.processes.indexOf(proc)<0){ p.processes.push(proc); if(!p.procMeta)p.procMeta={}; if(!p.procMeta[proc]) p.procMeta[proc]={unit:procUnit(p,proc),qty:null}; }
+      var rec={ id:uid(), planId:p.id, process:proc, reporter:String(C(r,6)||'').trim(), shift:String(C(r,7)||'').trim()||'早班', date:fixDate(C(r,8))||todayStr(), archived:false };
+      if(/^(完成|直接完成|done|是|yes|y|✔|✓|√|x)$/i.test(mode)){ rec.done=true; rec.qty=null; rec.okQty=null; rec.ngQty=null; }
+      else {
+        var qty=num(C(r,3)), okq=num(C(r,4)), ngq=num(C(r,5));
+        if(!(qty>0)){ skip++; errs.push('第'+(ri+1)+'行：报工数量无效（验收类工序可把报工方式填「完成」）'); return; }
+        rec.done=false; rec.qty=qty; rec.okQty=(okq===null?qty:okq); rec.ngQty=(ngq===null?0:ngq);
+        if(rec.okQty+rec.ngQty>rec.qty){ errs.push('第'+(ri+1)+'行：合格数+不合格数大于报工数量，已按原值导入'); }
+      }
+      S.reports.push(rec); ok++;
+    });
+  }
+  return {ok:ok,skip:skip,msg:'成功导入 '+ok+' 条'+(skip?'，跳过 '+skip+' 条':''),errs:errs};
+}
+function map2(n){ var a=[]; for(var i=0;i<n;i++) a.push(i); return a; }
+function fixDate(v){
+  v=String(v==null?'':v).trim(); if(!v) return '';
+  var m=v.match(/^(\d{4})[-\/.年](\d{1,2})[-\/.月](\d{1,2})/); if(m) return m[1]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[3]).slice(-2);
+  m=v.match(/^(\d{1,2})[-\/.](\d{1,2})$/); if(m) return todayStr().slice(0,4)+'-'+('0'+m[1]).slice(-2)+'-'+('0'+m[2]).slice(-2);
+  var d=new Date(v); if(!isNaN(+d) && /\d{4}/.test(v)) return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);
+  return v;
+}
+function openImport(kind){
+  var label=KIND_CN[kind];
+  var cols=TPL[kind];
+  var body='<div class="note">导入 <b>'+label+'</b>。两种方式任选其一，数据按<b>订单号</b>关联；列顺序可与模板不同（自动按表头识别），多余列忽略。<br>'
+    +'模板列：'+cols.map(function(c,i){return (i+1)+'. '+esc(c);}).join('　')+'<br>'
+    +'<b>说明：</b>已存在的订单号会自动跳过；领料/报工需先有对应排产计划。</div>'
+    +'<div class="subblock"><h4>方式一 · 选择文件导入</h4>'
+      +'<div class="muted" style="margin-bottom:8px;">支持 Excel 另存的「CSV UTF-8」或 TXT。Excel 文件（.xlsx）请先「另存为 → CSV UTF-8」，或直接用下方粘贴方式。</div>'
+      +'<div class="impbar"><button data-m="tpl" data-kind="'+kind+'">下载模板（含示例）</button><button data-m="tpl-blank" data-kind="'+kind+'">下载空白模板</button><button class="pri" data-m="pick-file" data-kind="'+kind+'">选择 CSV / TXT 文件</button><span class="muted" id="imp-status">未选择文件</span></div></div>'
+    +'<div class="subblock"><h4>方式二 · 从 Excel 直接粘贴</h4>'
+      +'<div class="muted" style="margin-bottom:6px;">在 Excel 中选中数据区域（含表头行）复制，点到下面框内 Ctrl+V 粘贴，再点「解析并导入」。</div>'
+      +'<textarea id="imp-paste" style="min-height:110px;" placeholder="订单号	工序	物料编号	物料名称	规格/批号	应领数量	实领数量	领料人	领料日期"></textarea>'
+      +'<div style="margin-top:8px;"><button class="pri" data-m="paste-import" data-kind="'+kind+'">解析并导入</button><span class="muted" id="imp-paste-tip" style="margin-left:10px;"></span></div></div>'
+    +'<div id="imp-errs"></div>';
+  openModal('Excel 导入 · '+label, body, '<button data-m="close">关闭</button>');
+}
+function showImportResult(res){
+  var st=document.getElementById('imp-status');
+  if(st){ st.textContent=res.msg; st.className = res.skip?'warn':'muted'; }
+  var pt=document.getElementById('imp-paste-tip'); if(pt){ pt.textContent=res.msg; }
+  var eb=document.getElementById('imp-errs');
+  if(eb){ eb.innerHTML = (res.errs&&res.errs.length) ? '<div class="warn" style="margin-top:8px;max-height:170px;overflow:auto;">'+res.errs.slice(0,60).map(function(e){return '<div>· '+esc(e)+'</div>';}).join('')+(res.errs.length>60?'<div>… 其余 '+(res.errs.length-60)+' 条未显示</div>':'')+'</div>' : ''; }
+  save(); renderAll();
+  toast(res.ok ? res.msg : '未导入任何数据，请检查内容格式');
+}
+function doPickFile(kind){
+  var fi=document.getElementById('import-xlsx');
+  fi.onchange=function(){
+    var f=fi.files[0]; if(!f){ return; }
+    if(/\.(xlsx|xls)$/i.test(f.name)){
+      var s0=document.getElementById('imp-status');
+      if(s0){ s0.textContent='暂不直接解析 .'+f.name.split('.').pop()+' 二进制文件，请在 Excel 中「另存为 CSV UTF-8」，或复制数据用下方粘贴导入'; s0.className='warn'; }
+      fi.value=''; return;
+    }
+    var st=document.getElementById('imp-status'); if(st) st.textContent='正在读取：'+f.name;
+    var rd=new FileReader();
+    rd.onload=function(){
+      try{ showImportResult(importRows(kind, parseCSV(rd.result))); }
+      catch(e){ var s3=document.getElementById('imp-status'); if(s3){ s3.textContent='导入失败：'+e.message; s3.className='err'; } }
+      fi.value='';
+    };
+    rd.readAsText(f,'utf-8');
+  };
+  fi.click();
+}
+function doPasteImport(kind){
+  var ta=document.getElementById('imp-paste');
+  var txt=ta?ta.value:'';
+  var rows=parsePaste(txt);
+  if(!rows.length){ var pt=document.getElementById('imp-paste-tip'); if(pt) pt.textContent='粘贴内容为空'; return; }
+  showImportResult(importRows(kind, rows));
+  if(ta) ta.value='';
+}
+function exportAll(){
+  var payload=JSON.stringify({ app:'车间生产工作台', version:2, exportedAt:new Date().toISOString(), data:S }, null, 2);
+  downloadBlob(new Blob([payload],{type:'application/json'}),'车间生产数据-'+dateStr()+'.json');
+  toast('已导出全部数据（含在制与归档记录、画布）');
+}
+
+/* SECTION: modal-dispatch */
+document.getElementById('modal-root').addEventListener('click', function(ev){
+  var b=ev.target.closest('[data-m]'); if(!b) return;
+  var m=b.getAttribute('data-m'), kind=b.getAttribute('data-kind'), id=b.getAttribute('data-id');
+  if(m==='close'){ closeModal(); return; }
+  if(m==='do-archive'){
+    var noteEl=document.getElementById('ar-note'); var note=noteEl?noteEl.value.trim():'';
+    doArchive('plan',id,note); return;
+  }
+  if(m==='tpl'){ downloadTemplate(kind); return; }
+  if(m==='tpl-blank'){ downloadTemplate(kind,true); return; }
+  if(m==='imp-open'){ openImport(kind); return; }
+  if(m==='export-all'){ exportAll(); return; }
+  if(m==='paste-import'){ doPasteImport(kind); return; }
+  if(m==='pick-file'){ doPickFile(kind); return; }
+  if(m==='pwa-install'){
+    if(deferredPrompt){ var dp=deferredPrompt; deferredPrompt=null; dp.prompt(); dp.userChoice.then(function(){ closeModal(); refreshInstallBtn(); }); }
+    return;
+  }
+  if(m==='persist'){ requestPersist().then(function(ok){ fillStoreStatus(); toast(ok?'持久化保护已开启':'未获授权，可在安装应用后再点此按钮'); }); return; }
+  if(m==='cache-offline'){
+    if(!('serviceWorker' in navigator)){ toast('当前环境不支持离线缓存'); return; }
+    var sw=navigator.serviceWorker;
+    var ctrl=sw.controller || (swReg && swReg.active);
+    if(!ctrl){ toast('离线缓存尚未就绪：请先联网打开一次本应用'); return; }
+    var ch=null;
+    try { ch=new MessageChannel(); ctrl.postMessage({type:'CACHE_SHELL'},[ch.port2]); } catch(e){ ch=null; }
+    if(ch){
+      ch.port1.onmessage=function(){ toast('离线包已缓存完成，断网后也能打开'); fillStoreStatus(); };
+      toast('正在缓存离线包…');
+    } else {
+      try { ctrl.postMessage({type:'CACHE_SHELL'}); toast('正在缓存离线包…'); } catch(e){ toast('缓存请求失败'); }
+    }
+    return;
+  }
+  if(m==='restore-file'){ document.getElementById('restore-file').click(); return; }
+  if(m==='restore-snap'){ restoreSnapshot(id); return; }
+  if(m==='reset-sample'){ closeModal(); resetSample(); return; }
+});
+
+/* SECTION: pwa-install-store */
+function isStandalone(){ return !!(window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone===true; }
+function isIOS(){
+  var ua=navigator.userAgent||'';
+  if(/iphone|ipad|ipod/i.test(ua)) return true;
+  /* iPadOS 13+ 桌面版 UA：Mac 触屏设备 */
+  if(navigator.platform==='MacIntel' && (navigator.maxTouchPoints||0)>1) return true;
+  return false;
+}
+var deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',function(ev){ ev.preventDefault(); deferredPrompt=ev; refreshInstallBtn(); });
+window.addEventListener('appinstalled',function(){ deferredPrompt=null; toast('安装成功，以后可从桌面图标打开'); refreshInstallBtn(); });
+function refreshInstallBtn(){ var b=document.getElementById('btn-install'); if(b) b.style.display=isStandalone()?'none':''; }
+function persistSupported(){ return !!(navigator.storage && navigator.storage.persist); }
+function requestPersist(){ if(!persistSupported()) return Promise.resolve(false); return navigator.storage.persist().catch(function(){ return false; }); }
+var persistTried=false;
+function tryAutoPersist(){
+  if(persistTried) return; persistTried=true;
+  try { navigator.storage.persisted().then(function(p){ if(!p) requestPersist(); }); } catch(e){}
+}
+document.addEventListener('pointerdown', tryAutoPersist);
+document.addEventListener('keydown', tryAutoPersist);
+
+function setText(id,t){ var el=document.getElementById(id); if(el) el.textContent=t; }
+function infoModalHtml(){
+  var installed=isStandalone();
+  var h='';
+  h+='<div class="subblock" id="sec-install"><h4>① 安装到手机 / 平板 / 电脑（像 App 一样使用）</h4>';
+  if(installed){
+    h+='<div class="note" style="margin-bottom:0;">当前已是<b>已安装状态</b>，可直接从桌面图标打开，断网也能用。</div>';
+  } else {
+    h+='<div class="impbar" id="pwa-direct"'+(deferredPrompt?'':' hidden')+'><button class="pri" data-m="pwa-install">立即安装到本机</button><span class="muted">点击后按浏览器提示确认即可</span></div>'
+      +'<div class="note">安装后桌面会出现「生产工作台」图标：<b>全屏运行、无浏览器地址栏、断网也能记录</b>，数据自动保存在本机，不会上传服务器。</div>'
+      +'<div class="subblock" style="margin-top:10px;margin-bottom:0;"><h4>安卓手机 / 平板（Chrome、Edge 等）</h4>'
+      +'<div class="muted" style="line-height:1.9;">点右上角菜单 <b>⋮</b> → 选择 <b>「安装应用」</b>或「添加到主屏幕」→ 确认；若上方出现「立即安装」按钮，直接点它更快。<br>若本页是在<b>微信/QQ</b>里打开的：先点右上角 <b>「···」→「在浏览器打开」</b>，再安装。</div></div>'
+      +'<div class="subblock" style="margin-top:10px;margin-bottom:0;"><h4>iPhone / iPad（必须用自带 Safari 浏览器）</h4>'
+      +'<div class="muted" style="line-height:1.9;">点浏览器底部的 <b>分享按钮（方框带向上箭头）</b> → 向下滑动点 <b>「添加到主屏幕」</b> → 点右上角「添加」。<br>微信或其他浏览器里无法安装，请先用 Safari 打开本页面。</div></div>'
+      +'<div class="subblock" style="margin-top:10px;margin-bottom:0;"><h4>电脑（Chrome / Edge）</h4>'
+      +'<div class="muted" style="line-height:1.9;">点地址栏<b>右侧的安装图标</b>，或菜单 <b>⋮ → 投放、保存和分享 → 安装页面</b>。</div></div>'
+      +'<div class="warn" style="margin-top:8px;">注意：直接双击 html 文件无法安装，需通过部署后的 https 网址打开本页。</div>';
+  }
+  h+='</div>';
+  h+='<div class="subblock" id="sec-store" style="margin-top:14px;"><h4>② 数据保存在哪里 / 会不会丢</h4>'
+    +'<div class="note">每次提交记录都会<b>立即自动保存到本机</b>，关掉页面、断网、重启设备都不会清除；另外每天第一次保存时会自动留一份<b>每日快照（保留 7 天）</b>，误删或数据异常可恢复。生产数据<b>只存在当前设备，不上传服务器</b>。</div>'
+    +'<div class="tw"><table class="grid" style="margin:8px 0 12px;"><tr><th>项目</th><th>状态</th></tr>'
+    +'<tr><td data-label="项目">运行方式</td><td data-label="状态" id="st-run">-</td></tr>'
+    +'<tr><td data-label="项目">持久化存储保护</td><td data-label="状态" id="st-persist">-</td></tr>'
+    +'<tr><td data-label="项目">数据量 / 配额</td><td data-label="状态" id="st-size">-</td></tr>'
+    +'<tr><td data-label="项目">当前记录</td><td data-label="状态" id="st-counts">-</td></tr>'
+    +'<tr><td data-label="项目">离线缓存（Service Worker）</td><td data-label="状态" id="st-offline">检测中…</td></tr>'
+    +'<tr><td data-label="项目">版本</td><td data-label="状态">'+APP_VERSION+'</td></tr></table></div>'
+    +'<div class="impbar"><button class="pri" id="btn-persist" data-m="persist">开启持久化保护</button><button data-m="export-all">导出备份文件</button><button data-m="restore-file">从备份文件恢复</button><button data-m="cache-offline">缓存离线包</button></div>'
+    +'<div class="subblock" style="margin-top:12px;margin-bottom:0;"><h4>本机自动快照（每日一份，保留 7 天）</h4><div id="snap-list">读取中…</div></div>'
+    +'<div class="warn" style="margin-top:10px;">换手机 / 多台设备：数据各自独立。转移时先在旧设备点「导出备份文件」生成 .json，再在新设备点「从备份文件恢复」。</div>'
+    +'<div style="margin-top:12px;"><button class="danger mini-btn" data-m="reset-sample">重置为内置示例数据（会清空当前记录，慎用）</button></div>'
+    +'</div>';
+  return h;
+}
+function openInfo(anchor){
+  openModal('安装与数据', infoModalHtml(), '<button data-m="close">关闭</button>');
+  fillStoreStatus();
+  renderSnapList();
+  if(anchor){ var el=document.getElementById(anchor==='store'?'sec-store':'sec-install'); if(el) setTimeout(function(){ el.scrollIntoView({block:'start'}); },60); }
+}
+function fillStoreStatus(){
+  setText('st-run', isStandalone()?'已安装（桌面图标运行，可离线）':'浏览器中运行（建议安装为 App）');
+  var pb=document.getElementById('btn-persist');
+  if(!persistSupported()){
+    setText('st-persist','苹果设备无此开关：数据会自动保存，但请勿在 Safari 中清除网站数据，建议每周导出一次备份文件');
+    if(pb) pb.style.display='none';
+  } else {
+    navigator.storage.persisted().then(function(p){
+      setText('st-persist', p?'已开启：浏览器/清理工具不会自动清除本应用数据':'未开启：点下方按钮开启（安卓/电脑）');
+      if(pb) pb.style.display=p?'none':'';
+    }).catch(function(){ setText('st-persist','读取失败'); });
+  }
+  setText('st-counts','排产 '+S.plans.length+' 单（在制 '+activePlans().length+'）｜领料 '+S.pickings.length+' 条｜报工 '+S.reports.length+' 条｜画布 '+S.canvases.length+' 个');
+  if(navigator.storage && navigator.storage.estimate){
+    navigator.storage.estimate().then(function(e){
+      var usedKB=Math.round((e.usage||0)/1024), quotaMB=Math.round((e.quota||0)/1024/1024);
+      setText('st-size','约 '+usedKB+' KB ／ 可用约 '+quotaMB+' MB');
+    }).catch(function(){ setText('st-size','—'); });
+  } else setText('st-size','当前浏览器不支持查询');
+  // 离线缓存状态
+  var offEl=document.getElementById('st-offline');
+  if(!offEl) return;
+  if(!('serviceWorker' in navigator)){
+    setText('st-offline','当前环境不支持（请用 Chrome/Edge/Safari 新版，并经由 https 或 localhost 打开）');
+  } else if(location.protocol==='file:'){
+    setText('st-offline','未生效：当前以本地文件打开，离线/安装均不可用，请改用部署后的网址');
+  } else {
+    setText('st-offline','检测中…');
+    navigator.serviceWorker.ready.then(function(){
+      setText('st-offline','已就绪：可离线打开，断网也能使用');
+    }).catch(function(){
+      setText('st-offline','尚未就绪：请联网打开一次本应用完成缓存');
+    });
+  }
+}
+function renderSnapList(){
+  var box=document.getElementById('snap-list'); if(!box) return;
+  var rows=listSnaps().map(function(s){
+    var d=s.date.slice(0,4)+'-'+s.date.slice(4,6)+'-'+s.date.slice(6,8);
+    return '<tr><td data-label="快照">'+d+' 每日快照</td><td data-label="操作" style="white-space:nowrap;"><button class="mini-btn" data-m="restore-snap" data-key="'+s.key+'">恢复此版</button></td></tr>';
+  });
+  if(parseState(localStorage.getItem(LS_PREV))) rows.push('<tr><td data-label="快照">上一次保存前的备份</td><td data-label="操作" style="white-space:nowrap;"><button class="mini-btn" data-m="restore-snap" data-key="'+LS_PREV+'">恢复此版</button></td></tr>');
+  box.innerHTML = rows.length ? '<div class="tw"><table class="grid"><tr><th>快照</th><th>操作</th></tr>'+rows.join('')+'</table></div>'
+    : '<div class="muted">暂无快照（今天保存数据后会自动生成）。</div>';
+}
+function restoreSnapshot(key){
+  var d=parseState(localStorage.getItem(key));
+  if(!d){ toast('该快照不可用'); return; }
+  if(!confirm('用该快照【替换】当前全部数据？当前数据会先存到「上一次保存前的备份」，之后还能再恢复回来。')) return;
+  try { localStorage.setItem(LS_PREV, JSON.stringify(S)); } catch(e){}
+  S=d; migrate(); save(); closeModal(); renderAll(); toast('已从快照恢复');
+}
+function resetSample(){
+  if(!confirm('重置将清除本地保存的全部记录，恢复为内置示例数据。确定继续？')) return;
+  try { localStorage.setItem(LS_PREV, JSON.stringify(S)); } catch(e){}
+  S=defaults(); migrate(); save(); renderAll(); toast('已恢复示例数据');
+}
+document.getElementById('btn-install').onclick=function(){ openInfo('install'); };
+document.getElementById('btn-store').onclick=function(){ openInfo('store'); };
+document.getElementById('btn-reset').onclick=function(){ resetSample(); };
+(function(){
+  var fi=document.getElementById('restore-file');
+  fi.onchange=function(){
+    var f=fi.files[0]; if(!f) return;
+    var rd=new FileReader();
+    rd.onload=function(){
+      try {
+        var obj=JSON.parse(rd.result), d=obj.data||obj;
+        if(!d || !Array.isArray(d.plans) || !Array.isArray(d.canvases)) throw new Error('bad');
+        if(!confirm('用备份文件【替换】当前全部数据？当前数据会先存到「上一次保存前的备份」。')){ fi.value=''; return; }
+        try { localStorage.setItem(LS_PREV, JSON.stringify(S)); } catch(e){}
+        S=d; migrate(); save(); closeModal(); renderAll(); toast('备份已恢复');
+      } catch(e){ toast('恢复失败：文件格式不正确'); }
+      fi.value='';
+    };
+    rd.readAsText(f,'utf-8');
+  };
+})();
+
+/* SECTION: service-worker */
+var swReady=false, swReg=null;
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').then(function(reg){
+      swReg=reg;
+      // 注册成功后主动预缓存离线包（即使安装阶段因个别资源失败，这里也能补上）
+      if(navigator.serviceWorker.controller){
+        try { navigator.serviceWorker.controller.postMessage({type:'CACHE_SHELL'}); } catch(e){}
+      }
+      navigator.serviceWorker.ready.then(function(){ swReady=true; });
+      function promptWaiting(){
+        if(!reg.waiting) return;
+        var btn=document.getElementById('sw-update');
+        if(!btn) return;
+        btn.hidden=false;
+        btn.onclick=function(){
+          btn.hidden=true;
+          navigator.serviceWorker.addEventListener('controllerchange', function(){ location.reload(); }, { once:true });
+          reg.waiting.postMessage({type:'SKIP_WAITING'});
+        };
+      }
+      promptWaiting();
+      reg.addEventListener('updatefound', function(){
+        var nw=reg.installing; if(!nw) return;
+        nw.addEventListener('statechange', function(){
+          if(nw.state==='installed' && navigator.serviceWorker.controller) promptWaiting();
+        });
+      });
+    }).catch(function(err){
+      // 离线/安装失败不再静默：在控制台与状态面板给出明确提示
+      console.warn('[SW] 注册失败：', err);
+      var st=document.getElementById('st-offline');
+      if(st) st.textContent='离线缓存不可用（注册失败）：请确认通过 https 或 localhost 打开，且 sw.js 可访问';
+    });
+  });
+}
+
+/* SECTION: nav */
+function showView(v){
+  document.querySelectorAll('[data-nav]').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-nav')===v); });
+  document.getElementById('view-data').classList.toggle('on', v==='data');
+  document.getElementById('view-board').classList.toggle('on', v==='board');
+  document.getElementById('view-canvas').classList.toggle('on', v==='canvas');
+  if(v==='data'){ renderData(); bindPlanForm(); bindProcSelects(); }
+  if(v==='board') renderBoard();
+  if(v==='canvas') renderCanvasView();
+  window.scrollTo(0,0);
+}
+document.addEventListener('click', function(ev){ var b=ev.target.closest('[data-nav]'); if(b) showView(b.getAttribute('data-nav')); });
+
+/* SECTION: init */
+/* 直开本地文件 / 非安全上下文提醒：这是「离线/安装用不了」的最常见根因 */
+(function(){
+  function showEnvBanner(msg){
+    var bar=document.createElement('div');
+    bar.style.cssText='position:sticky;top:0;z-index:9999;background:#b42318;color:#fff;padding:10px 14px;font-size:13px;line-height:1.7;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.2)';
+    bar.innerHTML=msg;
+    var app=document.getElementById('app');
+    if(app && app.parentNode) app.parentNode.insertBefore(bar, app);
+    else document.body.insertBefore(bar, document.body.firstChild);
+  }
+  if(location.protocol==='file:'){
+    showEnvBanner('<b>当前以本地文件方式打开，离线缓存与「安装为 App」均不可用。</b>请改用部署后的网址（如 GitHub Pages 的 https 链接）打开即可正常离线使用。');
+  } else if(location.hostname!=='localhost' && location.hostname!=='127.0.0.1' && location.protocol!=='https:'){
+    showEnvBanner('<b>当前并非安全连接（https），离线缓存与安装可能受限。</b>请通过 https 网址打开本应用。');
+  }
+})();
+migrate(); save();
+updateSaveState();
+refreshInstallBtn();
+if(recoveredFrom) setTimeout(function(){ toast('主数据读取异常，已自动从本机备份恢复，请核对'); },600);
+function renderAll(){ var active=document.querySelector('[data-nav].on'); showView(active?active.getAttribute('data-nav'):'data'); }
+showView('data');
+</script>
+</body>
+</html>
